@@ -1,15 +1,17 @@
 import { mkdir, stat, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { backdrop, defineOg, svg } from '../packages/astro-og-kit/dist/index.js'
+import { Resvg } from '@resvg/resvg-js'
+
+import { defineOg, svg } from '../packages/astro-og-kit/dist/index.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const docs = join(root, 'docs')
 const font = join(root, 'examples/editorial/src/assets/Inter-SemiBold.ttf')
 
 const fontConfig = { family: 'Inter', files: [font], weight: 600 }
-const page = { title: 'Hello, world' }
 const theme = {
   accent: '#c6c6bd',
   background: '#122023',
@@ -25,87 +27,68 @@ const card = ({ font, height, page, theme, width }) => svg`
       fill="${theme.foreground}">${page.title}</text>
   </svg>`
 
-async function write(dir, name, config, input = page) {
+async function writePhoto() {
+  const art = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <rect width="800" height="800" fill="#3d6b76"/>
+  <circle cx="640" cy="160" r="280" fill="#e8e4d4" fill-opacity="0.55"/>
+  <circle cx="120" cy="680" r="320" fill="#8fbf9a" fill-opacity="0.5"/>
+  <circle cx="430" cy="390" r="150" fill="#f4f3ec" fill-opacity="0.2"/>
+  <path d="M0 520 L800 220 L800 800 L0 800 Z" fill="#2a5058" fill-opacity="0.35"/>
+</svg>`
+  const png = new Resvg(art, {
+    fitTo: { mode: 'width', value: 800 },
+    font: { loadSystemFonts: false },
+  })
+    .render()
+    .asPng()
+  const file = join(tmpdir(), 'astro-og-kit-readme-photo.png')
+  await writeFile(file, png)
+
+  return file
+}
+
+async function write(name, config, page) {
   const og = defineOg({
     cacheDir: false,
     ...config,
   })
-  const file = join(dir, name)
-  const png = await og.render(input)
+  const file = join(docs, name)
+  const png = await og.render(page)
   await writeFile(file, png)
   const { size } = await stat(file)
   console.log(`${name} ${size} bytes`)
 }
 
-async function writeIn(cwd, dir, name, config, input) {
-  const previous = process.cwd()
-  process.chdir(cwd)
-  try {
-    await write(dir, name, config, input)
-  } finally {
-    process.chdir(previous)
-  }
-}
-
 await mkdir(docs, { recursive: true })
+const photo = await writePhoto()
 
-await write(docs, 'editorial.png', {
-  font: fontConfig,
-  mark: 'example.com',
-  theme,
-})
-await write(docs, 'backdrop.png', {
-  font: fontConfig,
-  mark: 'example.com',
-  template: 'backdrop',
-  theme,
-})
-await write(docs, 'custom.png', {
-  font: fontConfig,
-  template: card,
-  theme,
-})
-
-await writeIn(
-  join(root, 'examples/editorial'),
-  join(root, 'examples/editorial'),
-  'og.png',
+await write(
+  'editorial.png',
   {
-    font: { family: 'Inter', files: ['src/assets/Inter-SemiBold.ttf'], weight: 600 },
-    logo: { src: 'public/logo.svg', width: 72 },
-    mark: 'lukemcdonald.com',
-    theme: { accent: '#c6c6bd', background: '#122023', foreground: '#f4f3ec', muted: '#c6c6bd' },
+    font: fontConfig,
+    mark: 'example.com',
+    theme,
   },
-  { image: 'src/assets/luke-mustachio.jpg', title: 'Luke McDonald' },
+  { image: photo, title: 'Hello, world' },
 )
-await writeIn(
-  join(root, 'examples/backdrop'),
-  join(root, 'examples/backdrop'),
-  'og.png',
+await write(
+  'backdrop.png',
   {
-    background: {
-      crop: [0, 0, 600, 600],
-      opacity: 0.72,
-      overlay: '#26040c',
-      position: 'left',
-      src: 'src/assets/hero.jpg',
-    },
-    font: { family: 'Merriweather', files: ['src/assets/Merriweather-Bold.ttf'] },
-    logo: { css: '.text-secondary-200 { fill: #e8ddc1 }', src: 'public/logo.svg', width: 192 },
-    mark: 'Berean Bible Church',
-    template: backdrop({ titleMaxWidth: 720 }),
-    theme: { accent: '#ba9b47', background: '#4c0818', foreground: '#f9f9f8', muted: '#cfb97f' },
+    background: { src: photo },
+    font: fontConfig,
+    mark: 'example.com',
+    template: 'backdrop',
+    theme,
   },
-  { mark: false, title: 'Berean Bible Church' },
+  { title: 'Hello, world' },
 )
-await writeIn(
-  join(root, 'examples/custom'),
-  join(root, 'examples/custom'),
-  'og.png',
+await write(
+  'custom.png',
   {
-    font: { family: 'Inter', files: ['src/assets/Inter-SemiBold.ttf'], weight: 600 },
+    font: fontConfig,
     template: card,
-    theme: { background: '#122023', foreground: '#f4f3ec' },
+    theme,
   },
-  page,
+  { title: 'Hello, world' },
 )

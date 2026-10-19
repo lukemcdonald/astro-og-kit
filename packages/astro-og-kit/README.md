@@ -53,8 +53,6 @@ Set `site` in `astro.config` so image URLs are absolute. Pass the imported image
 
 <img src="https://raw.githubusercontent.com/lukemcdonald/astro-og-kit/main/docs/editorial.png" alt="editorial template" width="600" />
 
-Add a page `image` for the photo panel on the right.
-
 ```ts
 import { defineOg } from 'astro-og-kit'
 
@@ -63,24 +61,28 @@ export const og = defineOg({
   mark: 'example.com',
   theme: { accent: '#c6c6bd', background: '#122023', foreground: '#f4f3ec', muted: '#c6c6bd' },
 })
+
+og.route([{ image: 'src/assets/photo.jpg', pathname: '/', title: 'Hello, world' }])
 ```
 
 ### backdrop
 
 <img src="https://raw.githubusercontent.com/lukemcdonald/astro-og-kit/main/docs/backdrop.png" alt="backdrop template" width="600" />
 
-Add `background` for a full-bleed photo under a tint.
-
 ```ts
 import { defineOg } from 'astro-og-kit'
 
 export const og = defineOg({
+  background: { src: 'src/assets/photo.jpg' },
   font: { family: 'Inter', files: ['src/assets/Inter.ttf'] },
   mark: 'example.com',
   template: 'backdrop',
   theme: { accent: '#c6c6bd', background: '#122023', foreground: '#f4f3ec', muted: '#c6c6bd' },
 })
 ```
+
+Tweak a built-in without writing a template: `template: editorial({ titleSize: 64, accentBar: false })`
+(`titleMaxLines`, `titleMaxWidth`).
 
 ## Custom template
 
@@ -114,21 +116,24 @@ export const og = defineOg({
 
 ## Options
 
-| Option       | What it does                                          |
-| ------------ | ----------------------------------------------------- |
-| `font`       | `{ family, files, weight? }`. TTF or OTF, not WOFF2.  |
-| `template`   | `'editorial'` (default), `'backdrop'`, or a function. |
-| `theme`      | `{ background, foreground, muted, accent }`.          |
-| `logo`       | `{ src, width? }`.                                    |
-| `background` | `{ src, overlay?, opacity? }`.                        |
-| `mark`       | Small line under the title.                           |
-| `prefix`     | Image route. Default `/og`. Not Astro's `base`.       |
+| Option       | What it does                                                |
+| ------------ | ----------------------------------------------------------- |
+| `font`       | `{ family, files, weight? }`. TTF or OTF, not WOFF2.        |
+| `template`   | `'editorial'` (default), `'backdrop'`, or a function.       |
+| `theme`      | `{ background, foreground, muted, accent }`.                |
+| `logo`       | `{ src, width? }`.                                          |
+| `background` | `{ src, overlay?, opacity? }`.                              |
+| `mark`       | Small line under the title.                                 |
+| `prefix`     | Image route. Default `/og`. Not Astro's `base`.             |
+| `compress`   | Shrink PNGs with sharp when installed. Default `true`.      |
+| `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns it off. |
+
+Per page: `title`, `pathname`, `image`, `background`, `mark`, `template`, `theme`, `data`.
 
 ## More
 
-[editorial](https://github.com/lukemcdonald/astro-og-kit/tree/main/examples/editorial),
-[backdrop](https://github.com/lukemcdonald/astro-og-kit/tree/main/examples/backdrop), and
-[custom](https://github.com/lukemcdonald/astro-og-kit/tree/main/examples/custom) examples.
+[editorial](examples/editorial), [backdrop](examples/backdrop), and [custom](examples/custom)
+examples. `npm test`, `npm run examples`, and `npm run docs:images`.
 
 ## License
 

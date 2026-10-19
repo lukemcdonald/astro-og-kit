@@ -14,6 +14,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - run: npm run docs:check
       - run: npm run examples
       - name: Changeset when package source changes
         if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'changeset-release/')

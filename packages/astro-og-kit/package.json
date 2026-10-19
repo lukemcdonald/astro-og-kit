@@ -38,6 +38,7 @@
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
+    "prepack": "node ../../scripts/sync-package-readme.mjs",
     "test": "node --experimental-strip-types --test test/*.test.ts"
   },
   "engines": {

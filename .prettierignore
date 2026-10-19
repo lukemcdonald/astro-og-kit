@@ -2,3 +2,4 @@ dist
 .astro
 *.svg
 package-lock.json
+packages/astro-og-kit/README.md

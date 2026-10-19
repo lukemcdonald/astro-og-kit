@@ -12,9 +12,11 @@
     "test": "npm test -w astro-og-kit",
     "format": "prettier --write .",
     "lint": "prettier --check . && npm run check",
+    "docs:check": "node scripts/sync-package-readme.mjs --check",
     "docs:images": "npm run build && node scripts/readme-images.mjs",
+    "docs:readme": "node scripts/sync-package-readme.mjs",
     "examples": "npm run build && npm run build -w example-backdrop -w example-editorial -w example-custom",
-    "verify": "npm run lint && npm test",
+    "verify": "npm run lint && npm test && npm run docs:check",
     "changeset": "changeset",
     "release": "node scripts/guard-0x-version.mjs && changeset publish --tag next"
   },
