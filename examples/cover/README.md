@@ -1,4 +1,4 @@
 # Cover
 
-Matches [bbcmonticello.com](https://bbcmonticello.com): full-bleed photo under a tint.
+Full-bleed photo under a tinted overlay.
 Same kit as split, with `template` set to `cover`.

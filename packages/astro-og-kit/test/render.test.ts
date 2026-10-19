@@ -27,10 +27,7 @@ test('svg escapes values but keeps nested markup', () => {
 })
 
 test('wrapText balances lines and truncates with an ellipsis', () => {
-  assert.deepEqual(wrapText('Summary of Essential Beliefs', { maxChars: 22 }), [
-    'Summary of',
-    'Essential Beliefs',
-  ])
+  assert.deepEqual(wrapText('Getting started with docs', { maxChars: 22 }), ['Getting started', 'with docs'])
   assert.deepEqual(wrapText('one two three four five six', { maxChars: 9, maxLines: 2 }), [
     'one two',
     'three…',
@@ -40,14 +37,14 @@ test('wrapText balances lines and truncates with an ellipsis', () => {
 test('wrapText wraps by measured glyph width', () => {
   const metrics = fontMetrics(readFileSync(merriweather))
   const measure = (text: string) => metrics.width(text, 72)
-  assert.ok(measure('Berean Bible Church') > 720)
-  assert.ok(measure('Berean Bible Church') < 1008)
-  assert.deepEqual(wrapText('Berean Bible Church', { balance: true, maxWidth: 720, measure }), [
-    'Berean Bible',
-    'Church',
+  assert.ok(measure('Acme Product Launch') > 720)
+  assert.ok(measure('Acme Product Launch') < 1008)
+  assert.deepEqual(wrapText('Acme Product Launch', { balance: true, maxWidth: 720, measure }), [
+    'Acme Product',
+    'Launch',
   ])
-  assert.deepEqual(wrapText('Berean Bible Church', { balance: true, maxWidth: 1008, measure }), [
-    'Berean Bible Church',
+  assert.deepEqual(wrapText('Acme Product Launch', { balance: true, maxWidth: 1008, measure }), [
+    'Acme Product Launch',
   ])
 })
 
@@ -89,9 +86,9 @@ test('cover uses the text column unless maxWidth is set', async () => {
     font: { family: 'Merriweather', files: [merriweather] },
     template: 'cover',
   })
-  const markup = await og.svg({ title: 'Berean Bible Church' })
-  assert.match(markup, />Berean Bible Church</)
-  assert.doesNotMatch(markup, />Berean Bible</)
+  const markup = await og.svg({ title: 'Acme Product Launch' })
+  assert.match(markup, />Acme Product Launch</)
+  assert.doesNotMatch(markup, />Acme Product</)
 })
 
 test('cover draws the accent bar by default', async () => {
@@ -387,11 +384,11 @@ test('heading is drawn instead of title', async () => {
     font: { family: 'Inter', files: [font] },
   })
   const markup = await og.svg({
-    heading: 'Luke McDonald',
-    title: 'Luke McDonald | Christian, Husband, Father and Wrestling Coach',
+    heading: 'Getting started',
+    title: 'Getting started | Example Site documentation and guides',
   })
-  assert.match(markup, />Luke McDonald</)
-  assert.doesNotMatch(markup, /Wrestling Coach/)
+  assert.match(markup, />Getting started</)
+  assert.doesNotMatch(markup, /documentation/)
 })
 
 test('tells you to pass the imported image object, not .src', async () => {

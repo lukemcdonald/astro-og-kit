@@ -186,7 +186,7 @@ export const og = defineOg({
   font: { family: 'Inter', files: ['src/assets/fonts/Inter-SemiBold.ttf'], weight: 600 },
   colors,
   logo: { src: 'src/assets/logo.svg', width: 72 },
-  footer: 'lukemcdonald.com',
+  footer: 'example.com',
   photo: 'src/assets/hero.jpg',
   template: split({ lineHeight: 1.16 }),
   output: { path: '/og', compress: true, cache: 'node_modules/.astro-og-kit' },

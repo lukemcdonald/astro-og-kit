@@ -53,16 +53,16 @@ test('carrier encode/extract and slug mapping', () => {
     'https://localhost:4321/docs',
   )
   const encoded = encodeRecord({
-    heading: 'Luke McDonald',
+    heading: 'Getting started',
     pathname: '/about/',
     photo,
-    title: 'Luke McDonald | Christian, Husband, Father and Wrestling Coach',
+    title: 'Getting started | Example Site documentation and guides',
   })
   const { html, records } = extractRecords(`<head><meta name="astro-og-kit" content="${encoded}"></head>`)
   assert.equal(html.includes('astro-og-kit'), false)
-  assert.equal(records[0]?.heading, 'Luke McDonald')
+  assert.equal(records[0]?.heading, 'Getting started')
   assert.equal(records[0]?.photo, photo)
-  assert.equal(records[0]?.title, 'Luke McDonald | Christian, Husband, Father and Wrestling Coach')
+  assert.equal(records[0]?.title, 'Getting started | Example Site documentation and guides')
   assert.equal(records[0]?.pathname, '/about/')
 })
 
@@ -99,11 +99,11 @@ test('astro build writes PNGs from OgMeta and strips the carrier', { timeout: 12
   const namedHtml = readFileSync(join(dist, 'named/index.html'), 'utf8')
   assert.match(
     namedHtml,
-    /content="Luke McDonald \| Christian, Husband, Father and Wrestling Coach" property="og:title"/,
+    /content="Getting started \| Example Site documentation and guides" property="og:title"/,
   )
   assert.match(
     namedHtml,
-    /content="Luke McDonald \| Christian, Husband, Father and Wrestling Coach" name="twitter:title"/,
+    /content="Getting started \| Example Site documentation and guides" name="twitter:title"/,
   )
   assert.match(namedHtml, /content="https:\/\/example.com\/docs\/og\/named.png"/)
   for (const name of readdirSync(dist, { recursive: true })) {
@@ -120,9 +120,9 @@ test('astro build writes PNGs from OgMeta and strips the carrier', { timeout: 12
   const expected = Buffer.from(await og.render({ pathname: '/', photo, title: 'Home' }))
   assert.equal(home.equals(expected), true)
 
-  const namedTitle = 'Luke McDonald | Christian, Husband, Father and Wrestling Coach'
+  const namedTitle = 'Getting started | Example Site documentation and guides'
   const namedHeading = Buffer.from(
-    await og.render({ heading: 'Luke McDonald', pathname: '/named/', photo, title: namedTitle }),
+    await og.render({ heading: 'Getting started', pathname: '/named/', photo, title: namedTitle }),
   )
   const namedAsTitle = Buffer.from(await og.render({ pathname: '/named/', photo, title: namedTitle }))
   assert.equal(named.equals(namedHeading), true)

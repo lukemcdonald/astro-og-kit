@@ -11,7 +11,7 @@ export const og = defineOg({
     overlay: '#26040c',
   },
   logo: { src: 'public/logo.svg', width: 192 },
-  footer: 'Berean Bible Church',
+  footer: 'Example Site',
   photo: { position: 'left', src: 'src/assets/hero.jpg' },
   template: cover({ maxWidth: 720, opacity: 0.72 }),
 })

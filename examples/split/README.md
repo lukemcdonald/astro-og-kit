@@ -1,4 +1,4 @@
 # Split
 
-Matches [lukemcdonald.com](https://lukemcdonald.com): solid canvas, title, page photo on the right.
+Solid canvas, title on the left, page photo on the right.
 Not the README's 3-line setup. Pages that pass `photo` get the photo panel.

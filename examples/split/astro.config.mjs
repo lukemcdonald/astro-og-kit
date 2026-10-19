@@ -1,3 +1,3 @@
 import { defineConfig } from 'astro/config'
 
-export default defineConfig({ site: 'https://lukemcdonald.com' })
+export default defineConfig({ site: 'https://example.com' })
