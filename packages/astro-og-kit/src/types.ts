@@ -171,8 +171,10 @@ export type Og = {
 
 /** Props for `<OgMeta>`. Page fields are recorded by the integration and rendered to PNG. */
 export type OgMetaProps = Omit<OgMetaInput, 'image' | 'site' | 'url'> &
-  Pick<OgPage, 'background' | 'data' | 'footer' | 'image' | 'logo' | 'template' | 'theme'> & {
+  Pick<OgPage, 'background' | 'data' | 'footer' | 'image' | 'logo' | 'theme'> & {
     og: Og
+    /** Built-in template name. Custom functions belong on `defineOg({ template })`. */
+    template?: OgTemplateName
     /** Page URL for og:url and og:image. Defaults to `Astro.url`. */
     url?: string | URL
   }

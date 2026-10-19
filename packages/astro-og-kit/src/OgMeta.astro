@@ -2,8 +2,7 @@
 import type { OgMetaProps } from 'astro-og-kit'
 import { build, trailingSlash } from 'astro:config/client'
 
-import { isImageUrlOverride, recordPage } from './manifest.ts'
-import { pagePath } from './page-path.ts'
+import { encodeRecord, isImageUrlOverride, pagePath, warnOnDemand } from './page-path.ts'
 
 type Props = OgMetaProps
 
@@ -18,22 +17,29 @@ const tags = og.meta({
   site: Astro.site,
   url: new URL(path, Astro.site ?? pageUrl),
 })
-if (!override) {
-  recordPage({
-    cacheDir: og.config.cacheDir,
-    page: {
-      background,
-      data,
-      footer,
-      image,
-      logo,
-      pathname: path,
-      template,
-      theme,
-      title: input.title,
-    },
-  })
+const kit = import.meta.env.ASTRO_OG_KIT
+const carry = kit && (Astro.isPrerendered || import.meta.env.DEV) && !override
+if (kit && import.meta.env.DEV && !Astro.isPrerendered && !override) {
+  warnOnDemand(path)
 }
 ---
 
 {tags.map((tag) => <meta {...tag} />)}
+{
+  carry && (
+    <meta
+      name="astro-og-kit"
+      content={encodeRecord({
+        background,
+        data,
+        footer,
+        image,
+        logo,
+        pathname: path,
+        template,
+        theme,
+        title: input.title,
+      })}
+    />
+  )
+}

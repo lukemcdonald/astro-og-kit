@@ -42,6 +42,7 @@ export default defineConfig({
 
 ```astro
 ---
+import photo from '../assets/photo.jpg'
 import OgMeta from 'astro-og-kit/OgMeta.astro'
 import { og } from '../og'
 ---
@@ -51,12 +52,13 @@ import { og } from '../og'
 
 Every prerendered page that renders `<OgMeta>` gets a PNG at its `og:image` URL. No page list, no
 route file. `og.route()` is still there if you want an explicit list or on-demand rendering.
-On-demand pages are skipped; duplicate pathnames keep the last `<OgMeta>`.
+An `https://` (or `http://`) `image` string overrides `og:image` and skips generation.
+On-demand pages get no build-time PNG; use `og.route()` or that image URL.
+`template` on `<OgMeta>` is `'editorial'` or `'backdrop'` only.
 
 Set `site` in `astro.config` so image URLs are absolute. Pass the imported image object into
-`image`, not `.src`. A string URL (`https://...` or a site path) overrides `og:image` and skips
-generation. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`; relative
-values use `Astro.site`. Defaults to `Astro.url`.
+`image`, not `.src`. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`;
+relative values use `Astro.site`. Defaults to `Astro.url`.
 
 ## Templates
 

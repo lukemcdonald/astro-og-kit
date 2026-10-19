@@ -1,104 +1,82 @@
 import type { AstroIntegration } from 'astro'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { Og, OgConfig } from './types.ts'
+import type { Og, OgPage } from './types.ts'
 
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { defineOg } from './index.ts'
-import { beginRecording, endRecording, readPages } from './manifest.ts'
+import { extractRecords, pageFromSlug, pngSlug, type PagePathOptions } from './page-path.ts'
 import { stripDeployBase } from './route.ts'
 
-function isOg(input: Og | OgConfig): input is Og {
-  return 'render' in input && typeof (input as Og).render === 'function'
-}
-
-function toOg(input: Og | OgConfig): Og {
-  if (isOg(input)) {
-    return input
-  }
-
-  return defineOg(input)
-}
-
-function requestPath(req: IncomingMessage): string {
-  const raw = req.url ?? ''
-
-  return decodeURIComponent(raw.split('?')[0] ?? '')
-}
-
-function outFile(imageUrl: string, deployBase: string, outDir: string): string {
-  return join(outDir, stripDeployBase(imageUrl, deployBase).replace(/^\//, ''))
-}
-
 /**
- * Write PNGs for every page that rendered `<OgMeta>` during the static build.
- * In `astro dev`, serve those URLs from the same recorded page data.
+ * Write PNGs for every prerendered page that rendered `<OgMeta>`.
+ * In `astro dev`, serve those URLs by reading the carrier tag from the page.
  */
-export default function ogkit(ogOrConfig: Og | OgConfig): AstroIntegration {
-  const og = toOg(ogOrConfig)
-  const cacheDir = og.config.cacheDir
+export default function ogkit(og: Og): AstroIntegration {
+  const prefix = og.config.prefix ?? '/og'
   let base = '/'
-  let output: 'static' | 'server' = 'static'
+  let pathOptions: PagePathOptions = {}
 
   return {
     hooks: {
       'astro:build:done': async ({ dir, logger }) => {
-        const { duplicates, pages } = readPages(cacheDir)
-        for (const pathname of duplicates) {
-          logger.warn(`Duplicate <OgMeta> for ${pathname}; last one wins.`)
+        const outDir = fileURLToPath(dir)
+        const pages = new Map<string, OgPage>()
+        for (const name of readdirSync(outDir, { recursive: true })) {
+          if (!String(name).endsWith('.html')) {
+            continue
+          }
+          const file = join(outDir, String(name))
+          const source = readFileSync(file, 'utf8')
+          const { html, records } = extractRecords(source)
+          if (records.length > 1) {
+            logger.warn(`Duplicate astro-og-kit tag in ${name}; last one wins.`)
+          }
+          for (const record of records) {
+            pages.set(record.pathname ?? '/', record)
+          }
+          if (html !== source) {
+            writeFileSync(file, html)
+          }
         }
-        if (output === 'server') {
-          logger.info('On-demand pages are skipped at build time. Use og.route() to render those on request.')
-        }
-        if (pages.length === 0) {
+        if (pages.size === 0) {
           logger.warn('No pages recorded. Render <OgMeta> on prerendered pages.')
-          endRecording(cacheDir)
           return
         }
-
-        const outDir = fileURLToPath(dir)
-        for (const page of pages) {
-          const imageUrl = og.path(page.pathname, base)
-          const dest = outFile(imageUrl, base, outDir)
+        for (const page of pages.values()) {
+          const dest = join(
+            outDir,
+            stripDeployBase(og.path(page.pathname ?? '/', base), base).replace(/^\//, ''),
+          )
           mkdirSync(dirname(dest), { recursive: true })
           writeFileSync(dest, await og.render(page))
         }
-        logger.info(`Wrote ${pages.length} Open Graph image${pages.length === 1 ? '' : 's'}.`)
-        endRecording(cacheDir)
       },
-      'astro:build:start': () => {
-        beginRecording(cacheDir)
-      },
-      'astro:config:done': ({ buildOutput, config }) => {
+      'astro:config:done': ({ config }) => {
         base = config.base
-        output = buildOutput
+        pathOptions = { buildFormat: config.build.format, trailingSlash: config.trailingSlash }
       },
       'astro:config:setup': ({ command, updateConfig }) => {
-        if (command !== 'dev') {
-          return
-        }
         updateConfig({
           vite: {
-            plugins: [
-              {
-                configureServer(server) {
-                  server.middlewares.use((req, res, next) => {
-                    void serveDev(og, cacheDir, base, req, res, next)
-                  })
-                },
-                name: 'astro-og-kit-dev',
-              },
-            ],
+            define: { 'import.meta.env.ASTRO_OG_KIT': true },
+            ...(command === 'dev'
+              ? {
+                  plugins: [
+                    {
+                      configureServer(server) {
+                        server.middlewares.use((req, res, next) => {
+                          void serveDev(og, prefix, base, pathOptions, req, res, next)
+                        })
+                      },
+                      name: 'astro-og-kit-dev',
+                    },
+                  ],
+                }
+              : {}),
           },
         })
-      },
-      'astro:server:done': () => {
-        endRecording(cacheDir)
-      },
-      'astro:server:setup': () => {
-        beginRecording(cacheDir)
       },
     },
     name: 'astro-og-kit',
@@ -107,8 +85,9 @@ export default function ogkit(ogOrConfig: Og | OgConfig): AstroIntegration {
 
 async function serveDev(
   og: Og,
-  cacheDir: string | false | undefined,
+  prefix: string,
   base: string,
+  pathOptions: PagePathOptions,
   req: IncomingMessage,
   res: ServerResponse,
   next: (error?: unknown) => void,
@@ -117,24 +96,30 @@ async function serveDev(
     next()
     return
   }
-  const pathname = requestPath(req)
-  if (!pathname.endsWith('.png')) {
-    next()
-    return
-  }
-
-  const page = readPages(cacheDir).pages.find((entry) => og.path(entry.pathname, base) === pathname)
-  if (!page) {
+  const pathname = decodeURIComponent((req.url ?? '').split('?')[0] ?? '')
+  const slug = pathname.endsWith('.png') ? pngSlug(pathname, prefix, base) : undefined
+  if (!slug) {
     next()
     return
   }
 
   try {
-    const png = await og.render(page)
+    const root = base.replace(/\/+$/, '')
+    const path = pageFromSlug(slug, pathOptions)
+    const page = await fetch(`http://${req.headers.host}${root}${path === '/' ? '/' : path}`)
+    if (!page.ok) {
+      next()
+      return
+    }
+    const record = extractRecords(await page.text()).records.at(-1)
+    if (!record) {
+      next()
+      return
+    }
     res.statusCode = 200
-    res.setHeader('Content-Type', 'image/png')
     res.setHeader('Cache-Control', 'no-store')
-    res.end(png)
+    res.setHeader('Content-Type', 'image/png')
+    res.end(await og.render(record))
   } catch (error) {
     next(error)
   }

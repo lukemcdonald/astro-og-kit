@@ -37,7 +37,6 @@
   "files": [
     "dist",
     "src/OgMeta.astro",
-    "src/manifest.ts",
     "src/page-path.ts"
   ],
   "scripts": {
@@ -62,7 +61,6 @@
     }
   },
   "devDependencies": {
-    "@astrojs/mdx": "^8.1.0",
     "@types/node": "^24.0.0",
     "astro": "^7.4.0",
     "sharp": "^0.35.4",
