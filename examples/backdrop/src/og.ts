@@ -11,6 +11,6 @@ export const og = defineOg({
   font: { family: 'Merriweather', files: ['src/assets/Merriweather-Bold.ttf'] },
   logo: { css: '.text-secondary-200 { fill: #e8ddc1 }', src: 'public/logo.svg', width: 192 },
   mark: 'Berean Bible Church',
-  template: backdrop({ accentBar: true }),
+  template: backdrop({ titleMaxWidth: 720 }),
   theme: { accent: '#ba9b47', background: '#4c0818', foreground: '#f9f9f8', muted: '#cfb97f' },
 })

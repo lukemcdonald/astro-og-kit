@@ -1,7 +1,7 @@
 import type { OgConfig, OgPage, OgTemplate, OgTemplateContext, OgTheme } from './types.ts'
 
-import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash, randomBytes } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { Resvg } from '@resvg/resvg-js'
@@ -10,8 +10,8 @@ import { loadImage, loadLogo, loadSharp, readFont, resolvePath } from './assets.
 import { fontMetrics } from './font.ts'
 import { templates } from './templates/index.ts'
 
-export const WIDTH = 1200
 export const HEIGHT = 630
+export const WIDTH = 1200
 
 const VERSION = '1'
 
@@ -22,8 +22,19 @@ const DEFAULT_THEME: OgTheme = {
   muted: '#a3a3a3',
 }
 
+function isPng(bytes: Uint8Array) {
+  if (bytes.length < 8) {
+    return false
+  }
+
+  return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
+}
+
 function pickTemplate(option: OgPage['template']): OgTemplate {
-  if (typeof option === 'function') return option
+  if (typeof option === 'function') {
+    return option
+  }
+
   return templates[option ?? 'editorial']
 }
 
@@ -67,12 +78,16 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
 /** The SVG for one page, before rasterizing. Handy for debugging templates. */
 export async function renderSvg(config: OgConfig, page: OgPage): Promise<string> {
   const template = pickTemplate(page.template ?? config.template)
+
   return String(template(await buildContext(config, page)))
 }
 
 async function compress(png: Uint8Array) {
   const sharp = await loadSharp()
-  if (!sharp) return png
+  if (!sharp) {
+    return png
+  }
+
   return sharp(png).png({ compressionLevel: 9, palette: true, quality: 80 }).toBuffer()
 }
 
@@ -81,8 +96,17 @@ function cacheKey(config: OgConfig, svgMarkup: string) {
     .update(VERSION)
     .update(String(config.compress ?? true))
     .update(svgMarkup)
-  for (const file of config.font.files) hash.update(readFont(resolvePath(file)))
+  for (const file of config.font.files) {
+    hash.update(readFont(resolvePath(file)))
+  }
+
   return hash.digest('hex').slice(0, 32)
+}
+
+function writeCache(cacheFile: string, png: Uint8Array) {
+  const tmp = `${cacheFile}.${process.pid}-${randomBytes(4).toString('hex')}.tmp`
+  writeFileSync(tmp, png)
+  renameSync(tmp, cacheFile)
 }
 
 /** Render one page to PNG bytes. */
@@ -92,7 +116,12 @@ export async function renderPng(config: OgConfig, page: OgPage): Promise<Uint8Ar
     config.cacheDir === false ? undefined : resolvePath(config.cacheDir ?? 'node_modules/.astro-og-kit')
   const cacheFile = cacheDir && join(cacheDir, `${cacheKey(config, svgMarkup)}.png`)
 
-  if (cacheFile && existsSync(cacheFile)) return readFileSync(cacheFile)
+  if (cacheFile && existsSync(cacheFile)) {
+    const hit = readFileSync(cacheFile)
+    if (isPng(hit)) {
+      return hit
+    }
+  }
 
   const resvg = new Resvg(svgMarkup, {
     fitTo: { mode: 'width', value: WIDTH },
@@ -107,7 +136,8 @@ export async function renderPng(config: OgConfig, page: OgPage): Promise<Uint8Ar
 
   if (cacheDir && cacheFile) {
     mkdirSync(cacheDir, { recursive: true })
-    writeFileSync(cacheFile, png)
+    writeCache(cacheFile, png)
   }
+
   return png
 }

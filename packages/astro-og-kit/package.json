@@ -4,11 +4,9 @@
   "description": "Build-time Open Graph images for Astro. SVG templates, rendered with resvg. No React.",
   "keywords": [
     "astro",
-    "astro-component",
-    "open-graph",
     "og-image",
-    "social-image",
-    "withastro"
+    "open-graph",
+    "social-image"
   ],
   "homepage": "https://github.com/lukemcdonald/astro-og-kit",
   "bugs": {
@@ -48,7 +46,7 @@
     "@resvg/resvg-js": "^2.6.2"
   },
   "peerDependencies": {
-    "astro": ">=5",
+    "astro": ">=7",
     "sharp": ">=0.33"
   },
   "peerDependenciesMeta": {

@@ -11,6 +11,6 @@ import { og } from '../og'
   </head>
   <body>
     <h1>astro-og-kit example</h1>
-    <img src={og.path(Astro.url.pathname)} width="600" alt="" />
+    <img src={og.path(Astro.url.pathname, import.meta.env.BASE_URL)} width="600" alt="" />
   </body>
 </html>

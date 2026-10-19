@@ -28,7 +28,6 @@ export function editorial(options: FrameOptions = {}): OgTemplate {
  * The bbcmonticello.com look.
  */
 export function backdrop(options: FrameOptions = {}): OgTemplate {
-  const titleSize = options.titleSize ?? 72
   return frame({
     accentBar: true,
     balance: true,
@@ -36,8 +35,8 @@ export function backdrop(options: FrameOptions = {}): OgTemplate {
     logoY: 48,
     photoWidth: 520,
     titleMaxLines: 3,
-    titleMaxWidth: titleSize * 10,
-    titleSize,
+    titleMaxWidth: 0,
+    titleSize: 72,
     ...options,
   })
 }

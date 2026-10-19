@@ -1,6 +1,6 @@
 import { defineOg, svg, wrapText, type OgTemplate } from 'astro-og-kit'
 
-const centered: OgTemplate = ({ width, height, page, theme, font, logo }) => svg`
+const centered: OgTemplate = ({ font, height, logo, page, theme, width }) => svg`
   <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
     <rect width="100%" height="100%" fill="${theme.background}" />
     ${logo?.at((width - logo.width) / 2, 96)}

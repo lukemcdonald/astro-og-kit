@@ -24,31 +24,21 @@ npm install astro-og-kit@next
 **1. Configure once** in `src/og.ts`. Paths are relative to the project root.
 
 ```ts
-import { backdrop, defineOg } from 'astro-og-kit'
+import { defineOg } from 'astro-og-kit'
 
 export const og = defineOg({
-  template: backdrop({ accentBar: true }),
-  font: { family: 'Merriweather', files: ['src/assets/Merriweather-Bold.ttf'] },
-  theme: { background: '#4c0818', foreground: '#f9f9f8', muted: '#cfb97f', accent: '#ba9b47' },
-  logo: { src: 'public/logo.svg', width: 192 },
-  background: { src: 'src/assets/hero.jpg', overlay: '#26040c', opacity: 0.72 },
-  mark: 'Berean Bible Church',
+  font: { family: 'Inter', files: ['src/assets/Inter.ttf'] },
 })
 ```
 
 **2. Add the route** at `src/pages/og/[...slug].png.ts`.
 
 ```ts
-import { getCollection } from 'astro:content'
 import { og } from '../../og'
 
-export const { getStaticPaths, GET } = og.route(async () => [
-  { pathname: '/', title: 'Berean Bible Church', mark: false },
-  ...(await getCollection('pages')).map((page) => ({
-    pathname: `/${page.id}`,
-    title: page.data.title,
-    image: page.data.image, // imported images work
-  })),
+export const { GET, getStaticPaths, prerender } = og.route([
+  { pathname: '/', title: 'Home' },
+  { pathname: '/about', title: 'About' },
 ])
 ```
 
@@ -60,11 +50,42 @@ import OgMeta from 'astro-og-kit/OgMeta.astro'
 import { og } from '../og'
 ---
 
-<OgMeta og={og} title={title} description={description} siteName="Berean Bible Church" />
+<OgMeta og={og} title={title} description={description} />
 ```
 
 Set `site` in `astro.config` so image URLs are absolute. Prefer to write your own tags? Use
-`og.path(Astro.url.pathname)` for the image path or `og.meta({...})` for the tag list.
+`og.path(pathname)` for the image path or `og.meta({...})` for the tag list.
+
+### Make it look like your site
+
+Fonts, theme, logo, and a template are enough to match a real site:
+
+```ts
+import { backdrop, defineOg } from 'astro-og-kit'
+
+export const og = defineOg({
+  background: { src: 'src/assets/hero.jpg', overlay: '#26040c', opacity: 0.72 },
+  font: { family: 'Merriweather', files: ['src/assets/Merriweather-Bold.ttf'] },
+  logo: { src: 'public/logo.svg', width: 192 },
+  mark: 'Berean Bible Church',
+  template: backdrop({ titleMaxWidth: 720 }),
+  theme: { accent: '#ba9b47', background: '#4c0818', foreground: '#f9f9f8', muted: '#cfb97f' },
+})
+```
+
+Pass the imported image **object** into `image`, not `.src`. If a string `/_astro/...` path is
+passed and the file is not on disk, the kit throws that sentence.
+
+### `path()` contract
+
+`og.path(pathname)` builds the image URL path from a **page** path.
+
+- Pass the page path **without** the Astro deploy `base`. `/about/` → `/og/about.png`.
+- If `pathname` includes `import.meta.env.BASE_URL`, that prefix is stripped so it is not duplicated
+  in the slug, then prefixed on the result. With `base: '/docs'` in `astro.config`, `/about/` and
+  `/docs/about/` both become `/docs/og/about.png`. `<OgMeta>` does this for you.
+- `defineOg({ base })` is the **image route** (`/og` by default), not Astro's deploy `base`. Match
+  it to where the route file lives.
 
 ## Templates
 
@@ -81,9 +102,10 @@ import { defineOg, editorial } from 'astro-og-kit'
 defineOg({ template: editorial({ titleSize: 64, accentBar: false }), ... })
 ```
 
-Options: `titleSize`, `titleMaxLines`, `titleMaxWidth`, `balance`, `accentBar` (`true` is 12px, or
-pass a width), `logoX`, `logoY`, `photoWidth`. Titles wrap using the font's real glyph widths.
-`backdrop` caps the title at 10em so a line like "Berean Bible Church" breaks in two.
+Options: `titleSize`, `titleMaxLines`, `titleMaxWidth` (`0` uses the full text column), `accentBar`
+(`true` is 12px, or pass a width). Titles wrap using the font's real glyph widths.
+
+Advanced layout: `logoX`, `logoY`, `photoWidth`.
 
 ### Your own template
 
@@ -121,12 +143,12 @@ Pass `data` on a page for anything extra your template needs. Use `og.svg(page)`
 | `logo`       | `{ src, width?, color?, css? }`. SVG keeps it crisp; `color` fills `currentColor`; `css` styles classes. |
 | `background` | `{ src, overlay?, opacity?, position?, crop? }`. `crop` is `[x, y, width, height]` in source pixels.     |
 | `mark`       | Small line under the title, e.g. your domain.                                                            |
-| `base`       | URL base for images. Default `/og`; match it to where the route file lives.                              |
+| `base`       | Image route prefix. Default `/og`; match it to where the route file lives. Not Astro's deploy `base`.    |
 | `compress`   | Shrink PNGs with sharp when installed. Default `true`.                                                   |
 | `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns caching off.                                         |
 
-Per page you can set `title`, `description`, `mark` (or `false`), `image`, `background` (or `false`),
-`template`, `theme` and `data`.
+Per page you can set `title`, `pathname`, `mark` (or `false`), `image`, `background` (or `false`),
+`template`, `theme` and `data`. `description` belongs on `<OgMeta>` / `meta()`, not the page.
 
 ## Notes
 
@@ -134,7 +156,8 @@ Per page you can set `title`, `description`, `mark` (or `false`), `image`, `back
   `maxChars` if you are not measuring a font.
 - Images can be PNG, JPEG or GIF. WebP and AVIF work when sharp is installed.
 - The cache lives in `node_modules/.astro-og-kit` and is keyed on the SVG, font bytes, and
-  `compress` flag. It does not prune itself — delete that folder whenever you like.
+  `compress` flag. Writes are atomic; non-PNG cache hits are ignored. It does not prune itself —
+  delete that folder whenever you like.
 
 ## License
 

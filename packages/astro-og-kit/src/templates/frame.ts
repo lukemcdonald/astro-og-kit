@@ -4,9 +4,9 @@ import { svg } from '../svg.ts'
 import { wrapText } from '../wrap.ts'
 
 export type FrameOptions = {
-  /** Thin accent along the left edge. `true` is 12px; pass a width in px. */
+  /** Thin accent bar along the left edge. `true` is 12px; pass a width in px. */
   accentBar?: boolean | number
-  /** Balance line lengths instead of filling greedily. */
+  /** Balance line lengths instead of filling greedily. Per-template default. */
   balance?: boolean
   /** Logo position from the top-left corner. */
   logoX?: number

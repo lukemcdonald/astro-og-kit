@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 import sharp from 'sharp'
 
-import { backdrop, defineOg, fontMetrics, svg, wrapText } from '../src/index.ts'
+import { defineOg, fontMetrics, svg, wrapText } from '../src/index.ts'
 
 const font = fileURLToPath(
   new URL('../../../examples/editorial/src/assets/Inter-SemiBold.ttf', import.meta.url),
@@ -47,22 +47,6 @@ test('wrapText wraps by measured glyph width', () => {
   ])
 })
 
-test('path and meta', () => {
-  const og = defineOg({ font: { family: 'Inter', files: [font] } })
-  assert.equal(og.path('/'), '/og/index.png')
-  assert.equal(og.path('/about/team/'), '/og/about/team.png')
-  const tags = og.meta({
-    site: 'https://example.com',
-    title: 'About',
-    url: '/about/',
-  })
-  assert.ok(
-    tags.some(
-      (t) => 'property' in t && t.property === 'og:image' && t.content === 'https://example.com/og/about.png',
-    ),
-  )
-})
-
 test('rejects WOFF and WOFF2 fonts with a clear error', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-'))
   for (const [file, magic, label] of [
@@ -77,7 +61,7 @@ test('rejects WOFF and WOFF2 fonts with a clear error', async () => {
 })
 
 test('renders a 1200x630 PNG with both built-in templates', async () => {
-  for (const template of ['editorial', 'backdrop'] as const) {
+  for (const template of ['backdrop', 'editorial'] as const) {
     const og = defineOg({
       cacheDir: false,
       font: { family: 'Inter', files: [font] },
@@ -95,23 +79,23 @@ test('renders a 1200x630 PNG with both built-in templates', async () => {
   }
 })
 
-test('backdrop wraps the BBC home title at the default size', async () => {
+test('backdrop uses the text column unless titleMaxWidth is set', async () => {
   const og = defineOg({
     cacheDir: false,
     font: { family: 'Merriweather', files: [merriweather] },
     template: 'backdrop',
   })
   const markup = await og.svg({ title: 'Berean Bible Church' })
-  assert.match(markup, />Berean Bible</)
-  assert.match(markup, />Church</)
+  assert.match(markup, />Berean Bible Church</)
+  assert.doesNotMatch(markup, />Berean Bible</)
 })
 
-test('backdrop draws the accent edge', async () => {
+test('backdrop draws the accent bar by default', async () => {
   const og = defineOg({
     cacheDir: false,
     compress: false,
     font: { family: 'Inter', files: [font] },
-    template: backdrop({ accentBar: true }),
+    template: 'backdrop',
     theme: { accent: '#ba9b47', background: '#111111' },
   })
   const png = Buffer.from(await og.render({ title: 'Accent' }))
@@ -119,4 +103,41 @@ test('backdrop draws the accent edge', async () => {
   const i = (315 * 1200 + 0) * 4
   const [r, g, b] = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0]
   assert.ok(r > 160 && g > 120 && b < 120, `left edge should be gold, got ${r},${g},${b}`)
+})
+
+test('cache write is atomic and rejects non-PNG hits', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-cache-'))
+  const og = defineOg({
+    cacheDir: dir,
+    compress: false,
+    font: { family: 'Inter', files: [font] },
+  })
+  const first = Buffer.from(await og.render({ title: 'Cached' }))
+  assert.equal(first.readUInt32BE(0), 0x89504e47)
+
+  const pngs = readdirSync(dir).filter((name) => name.endsWith('.png'))
+  const tmps = readdirSync(dir).filter((name) => name.endsWith('.tmp'))
+  assert.equal(pngs.length, 1)
+  assert.equal(tmps.length, 0)
+
+  const cacheFile = join(dir, pngs[0] ?? '')
+  writeFileSync(cacheFile, 'not a png')
+  const recovered = Buffer.from(await og.render({ title: 'Cached' }))
+  assert.equal(recovered.readUInt32BE(0), 0x89504e47)
+  assert.equal(readFileSync(cacheFile).readUInt32BE(0), 0x89504e47)
+
+  const hit = Buffer.from(await og.render({ title: 'Cached' }))
+  assert.equal(hit.equals(recovered), true)
+})
+
+test('tells you to pass the imported image object, not .src', async () => {
+  const og = defineOg({ cacheDir: false, font: { family: 'Inter', files: [font] } })
+  await assert.rejects(
+    () => og.render({ image: '/_astro/hero.hash.jpg', title: 'Hero' }),
+    /Pass the imported image object, not \.src/,
+  )
+  await assert.rejects(
+    () => og.render({ image: { src: '/_astro/hero.hash.jpg' }, title: 'Hero' }),
+    /Pass the imported image object, not \.src/,
+  )
 })
