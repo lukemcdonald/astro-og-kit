@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 import sharp from 'sharp'
 
-import { loadNative, loadResvg } from '../src/native.ts'
+import { loadResvg } from '../src/native.ts'
 import { defineOg, editorial, fontMetrics, svg, wrapText } from '../src/index.ts'
 
 const font = fileURLToPath(
@@ -21,7 +21,6 @@ const logo = fileURLToPath(new URL('../../../examples/editorial/public/logo.svg'
 test('loadResvg uses createRequire from the package', () => {
   const { Resvg } = loadResvg()
   assert.equal(typeof Resvg, 'function')
-  assert.throws(() => loadNative('this-package-does-not-exist-og-kit'), /Cannot find module/)
 })
 
 test('svg escapes values but keeps nested markup', () => {

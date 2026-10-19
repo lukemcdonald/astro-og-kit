@@ -2,20 +2,22 @@
 import type { Og, OgMetaInput } from 'astro-og-kit'
 import { build, trailingSlash } from 'astro:config/client'
 
-type Props = Omit<OgMetaInput, 'buildFormat' | 'site' | 'trailingSlash' | 'url'> & {
+import { pagePath } from './page-path.ts'
+
+type Props = Omit<OgMetaInput, 'site' | 'url'> & {
   og: Og
   /** Page URL for og:url and og:image. Defaults to `Astro.url`. */
   url?: string | URL
 }
 
 const { og, url, ...input } = Astro.props
+const pageUrl = new URL(url ?? Astro.url, Astro.site)
+const path = pagePath(pageUrl.pathname, { buildFormat: build.format, trailingSlash })
 const tags = og.meta({
   ...input,
-  buildFormat: build.format,
   deployBase: import.meta.env.BASE_URL,
   site: Astro.site,
-  trailingSlash,
-  url: url ?? Astro.url,
+  url: new URL(path, Astro.site ?? pageUrl),
 })
 ---
 

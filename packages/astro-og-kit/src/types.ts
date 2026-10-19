@@ -123,8 +123,6 @@ export type OgConfig = {
 }
 
 export type OgMetaInput = {
-  /** Astro `build.format`. `<OgMeta>` sets this from `astro:config`. */
-  buildFormat?: 'directory' | 'file' | 'preserve'
   /** Astro deploy base. `<OgMeta>` sets this from `import.meta.env.BASE_URL`. */
   deployBase?: string
   description?: string
@@ -138,8 +136,6 @@ export type OgMetaInput = {
   site?: URL | string
   siteName?: string
   title: string
-  /** Astro `trailingSlash`. `<OgMeta>` sets this from `astro:config`. Default "ignore". */
-  trailingSlash?: 'always' | 'ignore' | 'never'
   /** og:type. Default "website". */
   type?: string
   /** Page URL or path, e.g. `Astro.url`. Used for og:url and og:image. */

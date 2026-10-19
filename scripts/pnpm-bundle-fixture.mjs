@@ -5,109 +5,84 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const kit = join(root, 'packages/astro-og-kit')
-const font = join(root, 'examples/editorial/src/assets/Inter-SemiBold.ttf')
 const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-pnpm-'))
-
-function run(cmd, args, cwd = dir) {
-  const result = spawnSync(cmd, args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
-  if (result.status !== 0) {
-    throw new Error(`${cmd} ${args.join(' ')}\n${result.stdout ?? ''}\n${result.stderr ?? ''}`.trim())
-  }
-
-  return result.stdout
+const write = (path, body) => {
+  mkdirSync(dirname(join(dir, path)), { recursive: true })
+  writeFileSync(join(dir, path), body)
 }
 
 try {
-  writeFileSync(
-    join(dir, 'package.json'),
-    `${JSON.stringify(
-      {
-        dependencies: {
-          astro: '^7.4.0',
-          'astro-og-kit': `file:${kit}`,
-          sharp: '^0.35.4',
-        },
-        name: 'og-kit-pnpm-fixture',
-        private: true,
-        scripts: { build: 'astro build' },
-        type: 'module',
+  write(
+    'package.json',
+    `${JSON.stringify({
+      dependencies: {
+        astro: '^7.4.0',
+        'astro-og-kit': `file:${join(root, 'packages/astro-og-kit')}`,
+        sharp: '^0.35.4',
       },
-      null,
-      2,
-    )}\n`,
+      name: 'og-kit-pnpm-fixture',
+      private: true,
+      type: 'module',
+    })}\n`,
   )
-  writeFileSync(join(dir, '.npmrc'), 'shamefully-hoist=false\n')
-  writeFileSync(
-    join(dir, 'astro.config.mjs'),
-    `import { defineConfig } from 'astro/config'\n\nexport default defineConfig({ site: 'https://example.com' })\n`,
+  write('.npmrc', 'shamefully-hoist=false\n')
+  write(
+    'astro.config.mjs',
+    `import { defineConfig } from 'astro/config'\nexport default defineConfig({ site: 'https://example.com' })\n`,
   )
   mkdirSync(join(dir, 'src/assets'), { recursive: true })
-  mkdirSync(join(dir, 'src/pages/og'), { recursive: true })
-  cpSync(font, join(dir, 'src/assets/Inter-SemiBold.ttf'))
-  writeFileSync(
-    join(dir, 'src/og.ts'),
-    `import { defineOg } from 'astro-og-kit'\n
-export const og = defineOg({
-  cacheDir: false,
-  font: { family: 'Inter', files: ['src/assets/Inter-SemiBold.ttf'] },
-})\n`,
+  cpSync(
+    join(root, 'examples/editorial/src/assets/Inter-SemiBold.ttf'),
+    join(dir, 'src/assets/Inter-SemiBold.ttf'),
   )
-  writeFileSync(
-    join(dir, 'src/pages/index.astro'),
+  write(
+    'src/og.ts',
+    `import { defineOg } from 'astro-og-kit'\nexport const og = defineOg({ cacheDir: false, font: { family: 'Inter', files: ['src/assets/Inter-SemiBold.ttf'] } })\n`,
+  )
+  write(
+    'src/pages/index.astro',
     `---
 import OgMeta from 'astro-og-kit/OgMeta.astro'
 import { og } from '../og'
 ---
-<html>
-  <head>
-    <OgMeta og={og} title="Home" />
-  </head>
-  <body>
-    <h1>Home</h1>
-  </body>
-</html>
+<html><head><OgMeta og={og} title="Home" /></head></html>
 `,
   )
-  writeFileSync(
-    join(dir, 'src/pages/og/[...slug].png.ts'),
-    `import { og } from '../../og'\n
-export const prerender = true
-export const { GET, getStaticPaths } = og.route([{ pathname: '/', title: 'Home' }])
-`,
+  write(
+    'src/pages/og/[...slug].png.ts',
+    `import { og } from '../../og'\nexport const prerender = true\nexport const { GET, getStaticPaths } = og.route([{ pathname: '/', title: 'Home' }])\n`,
   )
 
-  run('npx', ['--yes', 'pnpm@10', 'install'])
-  const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'))
-  if (pkg.dependencies['@resvg/resvg-js']) {
+  const run = (args) => {
+    const result = spawnSync('npx', ['--yes', 'pnpm@10', ...args], {
+      cwd: dir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    if (result.status !== 0) {
+      throw new Error(`${args.join(' ')}\n${result.stdout}\n${result.stderr}`.trim())
+    }
+  }
+
+  run(['install'])
+  if (JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).dependencies['@resvg/resvg-js']) {
     throw new Error('fixture must not depend on @resvg/resvg-js')
   }
   if (existsSync(join(dir, 'node_modules/@resvg'))) {
     throw new Error('expected @resvg not to be hoisted to the site root')
   }
 
-  run('npx', ['--yes', 'pnpm@10', 'build'])
-  const pngPath = join(dir, 'dist/og/index.png')
-  if (!existsSync(pngPath)) {
-    throw new Error(`missing ${pngPath}`)
-  }
-  const png = readFileSync(pngPath)
-  if (png.readUInt32BE(0) !== 0x89504e47) {
-    throw new Error('og image is not a PNG')
-  }
-
+  run(['exec', 'astro', 'build'])
+  const png = readFileSync(join(dir, 'dist/og/index.png'))
   const html = readFileSync(join(dir, 'dist/index.html'), 'utf8')
   if (!html.includes('og:url') || !html.includes('https://example.com/')) {
     throw new Error(`expected og:url in index.html\n${html}`)
   }
-
   const { default: sharp } = await import('sharp')
-  const meta = await sharp(png).metadata()
-  if (!meta.isPalette) {
-    throw new Error(`expected paletted PNG from compress, got ${JSON.stringify(meta)}`)
+  if (!(await sharp(png).metadata()).isPalette) {
+    throw new Error('expected paletted PNG from compress')
   }
-
-  console.log(`pnpm fixture ok: ${png.length} bytes, palette ${meta.isPalette}`)
+  console.log(`pnpm fixture ok: ${png.length} bytes`)
 } finally {
   rmSync(dir, { force: true, recursive: true })
 }

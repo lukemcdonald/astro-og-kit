@@ -4,7 +4,8 @@ import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { HEIGHT, WIDTH, defineOg } from '../src/index.ts'
-import { createMeta, imagePath, pagePath } from '../src/route.ts'
+import { pagePath } from '../src/page-path.ts'
+import { createMeta, imagePath } from '../src/route.ts'
 
 function tag(tags: ReturnType<ReturnType<typeof createMeta>>, key: string) {
   return tags.find((t) => ('property' in t && t.property === key) || ('name' in t && t.name === key))?.content
@@ -98,31 +99,18 @@ test('pagePath strips file output and honors trailingSlash', () => {
   assert.equal(pagePath('/docs/index.html', { trailingSlash: 'never' }), '/docs')
 })
 
-test('meta normalizes file URLs for og:url and og:image', () => {
+test('meta strips file URLs for og:url and og:image', () => {
   const meta = createMeta((pathname, deployBase) => imagePath(pathname, '/og', deployBase ?? '/'))
 
   const file = meta({
-    buildFormat: 'file',
     site: 'https://example.com',
     title: 'About',
-    trailingSlash: 'ignore',
     url: 'https://example.com/about/x.html',
   })
   assert.equal(tag(file, 'og:url'), 'https://example.com/about/x')
   assert.equal(tag(file, 'og:image'), 'https://example.com/og/about/x.png')
 
-  const fileSlash = meta({
-    buildFormat: 'file',
-    site: 'https://example.com',
-    title: 'About',
-    trailingSlash: 'always',
-    url: 'https://example.com/about/x.html',
-  })
-  assert.equal(tag(fileSlash, 'og:url'), 'https://example.com/about/x/')
-  assert.equal(tag(fileSlash, 'og:image'), 'https://example.com/og/about/x.png')
-
   const home = meta({
-    buildFormat: 'file',
     site: 'https://example.com',
     title: 'Home',
     url: 'https://example.com/index.html',
@@ -131,31 +119,18 @@ test('meta normalizes file URLs for og:url and og:image', () => {
   assert.equal(tag(home, 'og:image'), 'https://example.com/og/index.png')
 
   const nested = meta({
-    buildFormat: 'file',
     site: 'https://example.com',
     title: 'Team',
-    trailingSlash: 'never',
     url: 'https://example.com/about/team/index.html',
   })
-  assert.equal(tag(nested, 'og:url'), 'https://example.com/about/team')
+  assert.equal(tag(nested, 'og:url'), 'https://example.com/about/team/')
   assert.equal(tag(nested, 'og:image'), 'https://example.com/og/about/team.png')
-
-  const directory = meta({
-    buildFormat: 'directory',
-    site: 'https://example.com',
-    title: 'About',
-    trailingSlash: 'ignore',
-    url: 'https://example.com/about/x',
-  })
-  assert.equal(tag(directory, 'og:url'), 'https://example.com/about/x/')
-  assert.equal(tag(directory, 'og:image'), 'https://example.com/og/about/x.png')
 })
 
 test('meta honors base paths and url override', () => {
   const meta = createMeta((pathname, deployBase) => imagePath(pathname, '/og', deployBase ?? '/'))
 
   const base = meta({
-    buildFormat: 'file',
     deployBase: '/docs',
     site: 'https://origin',
     title: 'About',
@@ -165,11 +140,9 @@ test('meta honors base paths and url override', () => {
   assert.equal(tag(base, 'og:image'), 'https://origin/docs/og/about.png')
 
   const baseHome = meta({
-    buildFormat: 'file',
     deployBase: '/docs',
     site: 'https://origin',
     title: 'Home',
-    trailingSlash: 'always',
     url: 'https://origin/docs/index.html',
   })
   assert.equal(tag(baseHome, 'og:url'), 'https://origin/docs/')
