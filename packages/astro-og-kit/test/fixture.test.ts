@@ -12,9 +12,7 @@ import { encodeRecord, extractRecords, pageUrl, pngSlug } from '../src/page-path
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const fixture = join(root, 'test/fixture')
-const font = fileURLToPath(
-  new URL('../../../examples/editorial/src/assets/Inter-SemiBold.ttf', import.meta.url),
-)
+const font = fileURLToPath(new URL('../../../examples/split/src/assets/Inter-SemiBold.ttf', import.meta.url))
 const photo = fileURLToPath(new URL('./fixture/src/assets/photo.jpg', import.meta.url))
 const dist = join(fixture, 'dist')
 const tsc = join(root, '../../node_modules/typescript/bin/tsc')
@@ -115,9 +113,9 @@ test('astro build writes PNGs from OgMeta and strips the carrier', { timeout: 12
   }
 
   const og = defineOg({
-    compress: false,
     font: { family: 'Inter', files: [font] },
     footer: 'example.com',
+    output: { compress: false },
   })
   const expected = Buffer.from(await og.render({ pathname: '/', photo, title: 'Home' }))
   assert.equal(home.equals(expected), true)

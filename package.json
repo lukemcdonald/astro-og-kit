@@ -15,7 +15,7 @@
     "docs:check": "node scripts/sync-package-readme.mjs --check",
     "docs:images": "npm run build && node scripts/readme-images.mjs",
     "docs:readme": "node scripts/sync-package-readme.mjs",
-    "examples": "npm run build && npm run build -w example-backdrop -w example-editorial -w example-custom",
+    "examples": "npm run build && npm run build -w example-cover -w example-split -w example-custom",
     "test:pnpm-bundle": "npm run build && node scripts/pnpm-bundle-fixture.mjs",
     "verify": "npm run lint && npm test && npm run docs:check",
     "changeset": "changeset",

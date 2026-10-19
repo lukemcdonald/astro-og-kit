@@ -32,12 +32,12 @@ try {
   )
   mkdirSync(join(dir, 'src/assets'), { recursive: true })
   cpSync(
-    join(root, 'examples/editorial/src/assets/Inter-SemiBold.ttf'),
+    join(root, 'examples/split/src/assets/Inter-SemiBold.ttf'),
     join(dir, 'src/assets/Inter-SemiBold.ttf'),
   )
   write(
     'src/og.ts',
-    `import { defineOg } from 'astro-og-kit'\nexport const og = defineOg({ cacheDir: false, font: { family: 'Inter', files: ['src/assets/Inter-SemiBold.ttf'] } })\n`,
+    `import { defineOg } from 'astro-og-kit'\nexport const og = defineOg({ font: { family: 'Inter', files: ['src/assets/Inter-SemiBold.ttf'] }, output: { cache: false } })\n`,
   )
   write(
     'src/pages/index.astro',

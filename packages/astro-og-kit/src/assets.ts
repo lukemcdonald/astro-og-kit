@@ -1,4 +1,4 @@
-import type { OgImageSource, OgLogo, OgLogoRender, OgPhotoInput, OgPhotoPosition } from './types.ts'
+import type { OgImageSource, OgLogo, OgLogoRender, OgPhoto, OgPhotoInput, OgPhotoPosition } from './types.ts'
 
 import { existsSync, readFileSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
@@ -95,16 +95,23 @@ export function readFont(path: string) {
 
 export type ImageData = { height: number; href: string; width: number }
 
+function isPhoto(value: OgPhotoInput): value is OgPhoto {
+  return (
+    typeof value === 'object' &&
+    !(value instanceof URL) &&
+    'src' in value &&
+    ('position' in value || typeof value.src !== 'string')
+  )
+}
+
 export function photoSource(
   value: OgPhotoInput | false | undefined,
 ): { position: OgPhotoPosition; src: OgImageSource } | undefined {
   if (!value) {
     return
   }
-  if (typeof value === 'object' && !(value instanceof URL) && 'src' in value) {
-    if ('position' in value || typeof value.src !== 'string') {
-      return { position: value.position ?? 'center', src: value.src }
-    }
+  if (isPhoto(value)) {
+    return { position: value.position ?? 'center', src: value.src }
   }
 
   return { position: 'center', src: value }
@@ -185,9 +192,12 @@ function rasterSize(bytes: Buffer): { height: number; width: number } {
   return { height: bytes.readUInt16LE(8), width: bytes.readUInt16LE(6) }
 }
 
-export async function loadLogo(logo: OgLogo, defaults: { width: number }): Promise<OgLogoRender> {
+export async function loadLogo(
+  logo: OgLogo,
+  options: { color: string | false; width: number },
+): Promise<OgLogoRender> {
   const path = resolvePath(logo.src)
-  const width = logo.width ?? defaults.width
+  const width = logo.width ?? options.width
 
   if (sniff(read(path)) !== 'image/svg+xml') {
     const { height: sourceHeight, href, width: sourceWidth } = await loadImage(path)
@@ -207,15 +217,15 @@ export async function loadLogo(logo: OgLogo, defaults: { width: number }): Promi
     throw new Error(`[astro-og-kit] Logo needs a viewBox: ${path}`)
   }
   let inner = source.replace(/^[\s\S]*?<svg[^>]*>/i, '').replace(/<\/svg>\s*$/i, '')
-  if (logo.color) {
+  if (options.color) {
     inner = inner.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
   }
   const height = (width * vbHeight) / vbWidth
 
   return {
     at: (x, y) =>
-      logo.color
-        ? svg`<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="${viewBox}" color="${logo.color}" fill="${logo.color}">${raw(inner)}</svg>`
+      options.color
+        ? svg`<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="${viewBox}" color="${options.color}" fill="${options.color}">${raw(inner)}</svg>`
         : svg`<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="${viewBox}">${raw(inner)}</svg>`,
     height,
     width,

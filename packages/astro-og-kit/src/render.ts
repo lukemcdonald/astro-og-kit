@@ -1,4 +1,4 @@
-import type { OgConfig, OgPage, OgTemplate, OgTemplateContext, OgTheme } from './types.ts'
+import type { OgColors, OgConfig, OgPage, OgResolvedColors, OgTemplate, OgTemplateContext } from './types.ts'
 
 import { createHash, randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
@@ -14,11 +14,19 @@ export const WIDTH = 1200
 
 const VERSION = '1'
 
-const DEFAULT_THEME: OgTheme = {
+const DEFAULT_COLORS = {
   accent: '#c6c6bd',
   background: '#111111',
   foreground: '#f4f4f4',
   muted: '#a3a3a3',
+} as const
+
+function resolveColors(config?: OgColors, page?: OgColors): OgResolvedColors {
+  const merged = { ...DEFAULT_COLORS, ...config, ...page }
+  const overlay = merged.overlay ?? merged.background
+  const logo = merged.logo === false ? false : (merged.logo ?? merged.foreground)
+
+  return { ...merged, logo, overlay }
 }
 
 function isPng(bytes: Uint8Array) {
@@ -39,8 +47,7 @@ function pickTemplate(option: OgPage['template']): OgTemplate {
 
 /** Everything a template needs for one page. */
 export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTemplateContext> {
-  const merged = { ...DEFAULT_THEME, ...config.theme, ...page.theme }
-  const theme = { ...merged, overlay: merged.overlay ?? merged.background }
+  const colors = resolveColors(config.colors, page.colors)
   const footer = page.footer === false ? '' : (page.footer ?? config.footer ?? '')
   const logo = page.logo === false ? undefined : { ...config.logo, ...page.logo }
   const resolved = photoSource(page.photo === false ? undefined : (page.photo ?? config.photo))
@@ -51,6 +58,7 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
   const metrics = fontMetrics(readFont(resolvePath(fontFile)))
 
   return {
+    colors,
     font: {
       family: config.font.family,
       weight: config.font.weight ?? 700,
@@ -58,10 +66,11 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
     },
     footer,
     height: HEIGHT,
-    logo: logo?.src ? await loadLogo({ ...logo, src: logo.src }, { width: 96 }) : undefined,
+    logo: logo?.src
+      ? await loadLogo({ ...logo, src: logo.src }, { color: colors.logo, width: 96 })
+      : undefined,
     page: { ...page, title: page.heading ?? page.title },
     photo: resolved && { ...(await loadImage(resolved.src)), position: resolved.position },
-    theme,
     width: WIDTH,
   }
 }
@@ -117,13 +126,14 @@ function writeCache(cacheFile: string, png: Uint8Array) {
 /** Render one page to PNG bytes. */
 export async function renderPng(config: OgConfig, page: OgPage): Promise<Uint8Array> {
   const svgMarkup = await renderSvg(config, page)
-  const sharp = config.compress === false ? undefined : loadSharp()
-  if (config.compress !== false && !sharp) {
+  const wantCompress = config.output?.compress !== false
+  const sharp = wantCompress ? loadSharp() : undefined
+  if (wantCompress && !sharp) {
     warnMissingSharp()
   }
   const compressed = Boolean(sharp)
-  const cacheDir =
-    config.cacheDir === false ? undefined : resolvePath(config.cacheDir ?? 'node_modules/.astro-og-kit')
+  const cache = config.output?.cache
+  const cacheDir = cache === false ? undefined : resolvePath(cache ?? 'node_modules/.astro-og-kit')
   const cacheFile = cacheDir && join(cacheDir, `${cacheKey(config, svgMarkup, compressed)}.png`)
 
   if (cacheFile && existsSync(cacheFile)) {

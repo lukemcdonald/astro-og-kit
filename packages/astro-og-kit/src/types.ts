@@ -1,15 +1,17 @@
 import type { Markup } from './svg.ts'
 
-export type OgTheme = {
-  /** Accent bar and highlights. Default "#c6c6bd". */
+export type OgColors = {
+  /** Accent bar. Default "#c6c6bd". */
   accent?: string
-  /** Canvas color behind everything. Default "#111111". */
+  /** Card canvas. Default "#111111". */
   background?: string
-  /** Title color. Default "#f4f4f4". */
+  /** Title. Default "#f4f4f4". */
   foreground?: string
-  /** Footer and secondary text. Default "#a3a3a3". */
+  /** Recolor the logo (`currentColor` / fill). Default is `foreground`. `false` keeps the SVG's own colors. */
+  logo?: string | false
+  /** Footer text. Default "#a3a3a3". */
   muted?: string
-  /** Color over a full-bleed photo. Default is `background`. */
+  /** Tint over a full-bleed photo. Default is `background`. */
   overlay?: string
 }
 
@@ -37,15 +39,26 @@ export type OgPhoto = {
 export type OgPhotoInput = OgImageSource | OgPhoto
 
 export type OgLogo = {
-  /** CSS `color` and `fill` on the wrapper so `currentColor` inherits. Strips the file's inner `<style>`. */
-  color?: string
   /** SVG (recommended), PNG or JPEG. */
   src: OgImageSource
   /** Display width in px; height follows the aspect ratio. Default 96. */
   width?: number
 }
 
+export type OgOutput = {
+  /** Cache directory. Default "node_modules/.astro-og-kit". `false` disables. */
+  cache?: string | false
+  /** Quantize PNGs with sharp when installed. Default true. */
+  compress?: boolean
+  /**
+   * Image route. Default "/og". Not Astro's deploy `base`.
+   * Must match where the route file lives.
+   */
+  path?: string
+}
+
 export type OgPage = {
+  colors?: OgColors
   /** Anything else a custom template wants. */
   data?: Record<string, unknown>
   /** Small line under the title. `false` hides the site-level footer on this page. */
@@ -59,7 +72,6 @@ export type OgPage = {
   /** Page photo, or `false` to hide the site photo. Split draws a right panel; cover draws it full-bleed. */
   photo?: OgPhotoInput | false
   template?: OgTemplateOption
-  theme?: OgTheme
   title: string
 }
 
@@ -72,7 +84,17 @@ export type OgLogoRender = {
   at(x: number, y: number): Markup
 }
 
+export type OgResolvedColors = {
+  accent: string
+  background: string
+  foreground: string
+  logo: string | false
+  muted: string
+  overlay: string
+}
+
 export type OgTemplateContext = {
+  colors: OgResolvedColors
   font: {
     family: string
     weight: number
@@ -86,7 +108,6 @@ export type OgTemplateContext = {
   page: OgPage
   /** Page or site photo, if any. */
   photo?: OgImage & { position: OgPhotoPosition }
-  theme: Required<OgTheme>
   width: number
 }
 
@@ -96,26 +117,19 @@ export type OgTemplateName = 'cover' | 'split'
 
 export type OgTemplateOption = OgTemplateName | OgTemplate
 
+/** Site-wide options. Flat; Brand / Layout / Build are README groups, not nested keys. */
 export type OgConfig = {
-  /** Reuse renders across builds. Default "node_modules/.astro-og-kit"; `false` disables. */
-  cacheDir?: string | false
-  /** Quantize PNGs with sharp when it's installed. Default true. Warns once if sharp cannot be loaded. */
-  compress?: boolean
+  colors?: OgColors
   /** Family plus TTF/OTF files. Required; resvg needs a font file to draw text. */
   font: OgFont
   /** Site-wide small line, usually the site name or domain. Default none. */
   footer?: string
   logo?: OgLogo
+  output?: OgOutput
   /** Site photo. Pages override with `photo`; `photo: false` hides it. */
   photo?: OgPhotoInput
-  /**
-   * Image route prefix. Must match where the route file lives. Default "/og".
-   * Not Astro's deploy `base` (`import.meta.env.BASE_URL`); pass that to `path()` as `deployBase`.
-   */
-  prefix?: string
   /** Built-in name, a configured template, or a function. Default "split". */
   template?: OgTemplateOption
-  theme?: OgTheme
 }
 
 export type OgMetaInput = {
@@ -166,7 +180,7 @@ export type Og = {
 
 /** Props for `<OgMeta>`. Page fields are recorded by the integration and rendered to PNG. */
 export type OgMetaProps = Omit<OgMetaInput, 'site' | 'url'> &
-  Pick<OgPage, 'data' | 'footer' | 'heading' | 'logo' | 'photo' | 'theme'> & {
+  Pick<OgPage, 'colors' | 'data' | 'footer' | 'heading' | 'logo' | 'photo'> & {
     /** `defineOg()` result. Required unless `ogKit(og)` is in astro.config. */
     og?: Og
     /** Built-in template name. Custom functions belong on `defineOg({ template })`. */
