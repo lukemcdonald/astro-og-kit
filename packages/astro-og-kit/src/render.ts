@@ -42,7 +42,7 @@ function pickTemplate(option: OgPage['template']): OgTemplate {
 export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTemplateContext> {
   const theme = { ...DEFAULT_THEME, ...config.theme, ...page.theme }
   const background = page.background === false ? undefined : (page.background ?? config.background)
-  const mark = page.mark === false ? '' : (page.mark ?? config.mark ?? '')
+  const footer = page.footer === false ? '' : (page.footer ?? config.footer ?? '')
 
   const backgroundImage = background && (await loadImage(background.src))
   const fontFile = config.font.files[0]
@@ -65,10 +65,10 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
       weight: config.font.weight ?? 700,
       width: (text, size) => metrics.width(text, size),
     },
+    footer,
     height: HEIGHT,
     image: page.image ? await loadImage(page.image) : undefined,
     logo: config.logo && (await loadLogo(config.logo, { color: theme.foreground, width: 96 })),
-    mark,
     page,
     theme,
     width: WIDTH,

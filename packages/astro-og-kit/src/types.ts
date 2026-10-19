@@ -7,7 +7,7 @@ export type OgTheme = {
   background: string
   /** Title color. */
   foreground: string
-  /** Secondary text (the mark). */
+  /** Secondary text (the footer). */
   muted: string
 }
 
@@ -51,10 +51,10 @@ export type OgPage = {
   background?: OgBackground | false
   /** Anything else a custom template wants. */
   data?: Record<string, unknown>
+  /** Small line under the title. `false` hides the site-level footer on this page. */
+  footer?: string | false
   /** Page photo; the editorial template shows it on the right. */
   image?: OgImageSource
-  /** Small line under the title. `false` hides the site-level mark on this page. */
-  mark?: string | false
   /** Page URL path, e.g. "/about/". The image slug is always derived from this. */
   pathname?: string
   template?: OgTemplateOption
@@ -85,12 +85,12 @@ export type OgTemplateContext = {
     /** Advance width of `text` in px at `size`, from the configured TTF/OTF. */
     width(text: string, size: number): number
   }
+  /** Resolved site footer (or page override); empty when hidden. */
+  footer: string
   height: number
   /** Page photo, if any. */
   image?: OgImage
   logo?: OgLogoRender
-  /** Resolved site mark (or page override); empty when hidden. */
-  mark: string
   page: OgPage
   theme: OgTheme
   width: number
@@ -109,9 +109,9 @@ export type OgConfig = {
   /** Quantize PNGs with sharp when it's installed (Astro ships it). Default true. */
   compress?: boolean
   font: OgFont
-  logo?: OgLogo
   /** Site-wide small line, usually the site name or domain. */
-  mark?: string
+  footer?: string
+  logo?: OgLogo
   /**
    * Image route prefix. Must match where the route file lives. Default "/og".
    * Not Astro's deploy `base` (`import.meta.env.BASE_URL`); pass that to `path()` as `deployBase`.
