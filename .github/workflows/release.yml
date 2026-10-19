@@ -1,20 +1,45 @@
-# Experimental releases only. Manual trigger; publishes 0.x under the `next`
-# dist-tag with npm provenance. Needs an NPM_TOKEN secret (not set up yet).
+# Experimental 0.x releases on the `next` dist-tag via npm trusted publishing (OIDC).
+# No NPM_TOKEN. Configure the GitHub Actions trusted publisher on npmjs.com first.
 name: Release (next)
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        default: true
+        description: Pack and print the tarball without uploading
+        type: boolean
+permissions:
+  contents: read
+  id-token: write
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 24, registry-url: https://registry.npmjs.org }
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest && npm --version
       - run: npm ci
-      - run: npm test && npm run build
-      - run: npm publish -w astro-og-kit --tag next --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: Guard 0.x versions
+        working-directory: packages/astro-og-kit
+        run: |
+          version=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
+          echo "version=$version"
+          if ! echo "$version" | grep -Eq '^0\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "Refusing to publish $version; this workflow only publishes 0.x or 0.x prereleases."
+            exit 1
+          fi
+      - name: Publish
+        working-directory: packages/astro-og-kit
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --dry-run --tag next --access public
+          else
+            npm publish --tag next --provenance --access public
+          fi
