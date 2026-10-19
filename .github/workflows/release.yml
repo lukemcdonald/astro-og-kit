@@ -1,21 +1,23 @@
-# Experimental 0.x releases on the `next` dist-tag via npm trusted publishing (OIDC).
-# No NPM_TOKEN. Configure the GitHub Actions trusted publisher on npmjs.com first.
-name: Release (next)
+# Version Packages PR on push to main; publish 0.x to the `next` dist-tag via
+# npm trusted publishing (OIDC). No NPM_TOKEN. Workflow filename must stay
+# release.yml so it matches the trusted publisher on npmjs.com.
+name: Release
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      dry_run:
-        default: true
-        description: Pack and print the tarball without uploading
-        type: boolean
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
 permissions:
-  contents: read
+  contents: write
   id-token: write
+  pull-requests: write
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -26,20 +28,6 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
-      - name: Guard 0.x versions
-        working-directory: packages/astro-og-kit
-        run: |
-          version=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
-          echo "version=$version"
-          if ! echo "$version" | grep -Eq '^0\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
-            echo "Refusing to publish $version; this workflow only publishes 0.x or 0.x prereleases."
-            exit 1
-          fi
-      - name: Publish
-        working-directory: packages/astro-og-kit
-        run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            npm publish --dry-run --tag next --access public
-          else
-            npm publish --tag next --provenance --access public
-          fi
+      - uses: changesets/action@v2
+        with:
+          publish-script: npm run release
