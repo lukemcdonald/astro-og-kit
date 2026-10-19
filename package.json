@@ -12,6 +12,7 @@
     "test": "npm test -w astro-og-kit",
     "format": "prettier --write .",
     "lint": "prettier --check . && npm run check",
+    "docs:images": "npm run build && node scripts/readme-images.mjs",
     "examples": "npm run build && npm run build -w example-backdrop -w example-editorial -w example-custom",
     "verify": "npm run lint && npm test",
     "changeset": "changeset",
