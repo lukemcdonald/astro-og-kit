@@ -46,21 +46,22 @@ import photo from '../assets/photo.jpg'
 import OgMeta from 'astro-og-kit/OgMeta.astro'
 ---
 
-<OgMeta description={description} image={photo} title={title} />
+<OgMeta description={description} photo={photo} title={title} />
 ```
 
 Every prerendered page that renders `<OgMeta>` gets a PNG at its `og:image` URL. No page list, no
-route file. An `https://` (or `http://`) `image` string overrides `og:image` and skips generation.
-`template` on `<OgMeta>` is `'editorial'` or `'backdrop'` only.
+route file. `photo` is the card photo. `heading` is the text drawn on the image and defaults to
+`title`. `image` overrides `og:image` (an absolute URL, or a path resolved against `Astro.site`)
+and skips generation. `template` on `<OgMeta>` is `'editorial'` or `'backdrop'` only.
 
 Set `site` in `astro.config` so image URLs are absolute. Pass the imported image object into
-`image`, not `.src`. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`;
+`photo`, not `.src`. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`;
 relative values use `Astro.site`. Defaults to `Astro.url`.
 
 ### Advanced: explicit routes / on-demand pages
 
 On-demand pages get no build-time PNG. Use `og.route()` in `src/pages/og/[...slug].png.ts`
-(`export const prerender = true`), or pass an image URL. Without the integration, pass `og={og}`
+(`export const prerender = true`), or pass `image`. Without the integration, pass `og={og}`
 to `<OgMeta>`.
 
 ## Templates
@@ -146,8 +147,9 @@ export const og = defineOg({
 | `compress`   | Shrink PNGs with sharp when installed. Default `true`.      |
 | `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns it off. |
 
-Per page (on `<OgMeta>` or `og.route()`): `title`, `pathname`, `image`, `background`, `footer`,
-`logo`, `template`, `theme`, `data`. `logo: false` hides the site logo; an object is merged over it.
+Per page (on `<OgMeta>` or `og.route()`): `title`, `heading`, `pathname`, `photo`, `background`,
+`footer`, `logo`, `template`, `theme`, `data`. `heading` defaults to `title`. `image` on `<OgMeta>`
+overrides `og:image`. `logo: false` hides the site logo; an object is merged over it.
 `WIDTH` and `HEIGHT` (`1200`, `630`) are exported for custom templates. A logo file's inner
 `<style>` is stripped; color comes from `logo.color` / `currentColor`.
 

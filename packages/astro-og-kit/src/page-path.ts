@@ -153,7 +153,11 @@ export function createMeta(path: (pathname: string, deployBase?: string) => stri
     const pageUrl = new URL(url, site)
     const route = pagePath(pageUrl.pathname)
     const ogUrl = site ? new URL(route, site).toString() : undefined
-    const imageUrl = new URL(image ?? path(route, deployBase), site ?? pageUrl).toString()
+    const root = normalizeBase(deployBase ?? '/')
+    const imageUrl = new URL(
+      image ?? path(route, deployBase),
+      new URL(root === '/' ? '/' : `${root}/`, site ?? pageUrl),
+    ).toString()
     const tags: [string, string | undefined, 'name' | 'property'][] = [
       ['og:title', title, 'property'],
       ['og:description', description, 'property'],
@@ -187,10 +191,6 @@ export function metaTags(input: OgMetaInput, prefix = '/og'): OgMetaTag[] {
   return createMeta((pathname, deployBase) => imagePath(pathname, prefix, deployBase))(input)
 }
 
-export function isImageUrlOverride(image: unknown): image is string {
-  return typeof image === 'string' && /^https?:\/\//i.test(image)
-}
-
 function filePath(source: OgImageSource): string {
   if (typeof source === 'object' && !(source instanceof URL)) {
     return source.fsPath ?? source.src.split('?')[0] ?? ''
@@ -222,9 +222,10 @@ export function encodeRecord(page: OgPage): string {
       background: withSrc(page.background),
       data: page.data,
       footer: page.footer,
-      image: page.image === undefined ? undefined : filePath(page.image),
+      heading: page.heading,
       logo: withSrc(page.logo),
       pathname: page.pathname ?? '/',
+      photo: page.photo === undefined ? undefined : filePath(page.photo),
       template: template === 'backdrop' || template === 'editorial' ? template : undefined,
       theme: page.theme,
       title: page.title,

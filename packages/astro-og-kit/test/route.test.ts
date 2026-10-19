@@ -165,6 +165,35 @@ test('meta honors base paths and url override', () => {
   })
   assert.equal(tag(absolute, 'og:url'), 'https://example.com/about/x')
   assert.equal(tag(absolute, 'og:image'), 'https://example.com/og/about/x.png')
+
+  const rootRelative = meta({
+    deployBase: '/docs',
+    image: '/custom-share.jpg',
+    site: 'https://example.com',
+    title: 'About',
+    url: 'https://example.com/docs/about/',
+  })
+  assert.equal(tag(rootRelative, 'og:image'), 'https://example.com/custom-share.jpg')
+  assert.equal(tag(rootRelative, 'og:image:width'), undefined)
+  assert.equal(tag(rootRelative, 'twitter:image'), 'https://example.com/custom-share.jpg')
+
+  const relative = meta({
+    deployBase: '/docs',
+    image: 'custom-share.jpg',
+    site: 'https://example.com',
+    title: 'About',
+    url: 'https://example.com/docs/about/',
+  })
+  assert.equal(tag(relative, 'og:image'), 'https://example.com/docs/custom-share.jpg')
+
+  const remote = meta({
+    deployBase: '/docs',
+    image: 'https://cdn.example.com/custom.png',
+    site: 'https://example.com',
+    title: 'About',
+    url: 'https://example.com/docs/about/',
+  })
+  assert.equal(tag(remote, 'og:image'), 'https://cdn.example.com/custom.png')
 })
 
 test('route() lists paths and rejects GET without title', async () => {

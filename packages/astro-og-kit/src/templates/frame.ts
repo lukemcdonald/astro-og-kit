@@ -47,8 +47,8 @@ function accentWidth(accentBar: boolean | number) {
  * accent bar, logo top-left, title centered vertically, footer near the bottom.
  */
 export function frame(options: Required<FrameOptions>): OgTemplate {
-  return ({ background, font, footer, height, image, logo, page, theme, width }: OgTemplateContext) => {
-    const photoWidth = image ? options.photoWidth : 0
+  return ({ background, font, footer, height, logo, page, photo, theme, width }: OgTemplateContext) => {
+    const photoWidth = photo ? options.photoWidth : 0
     const textWidth = width - PAD * 2 - photoWidth
     const maxWidth = Math.min(textWidth, options.titleMaxWidth || textWidth)
     const lines = wrapText(page.title, {
@@ -72,8 +72,8 @@ export function frame(options: Required<FrameOptions>): OgTemplate {
   <rect width="${width}" height="${height}" fill="${background.overlay}" fill-opacity="${background.opacity}" />`
   }
   ${
-    image &&
-    svg`<image href="${image.href}" x="${width - photoWidth}" width="${photoWidth}" height="${height}" preserveAspectRatio="xMidYMid slice" />`
+    photo &&
+    svg`<image href="${photo.href}" x="${width - photoWidth}" width="${photoWidth}" height="${height}" preserveAspectRatio="xMidYMid slice" />`
   }
   ${bar > 0 && svg`<rect width="${bar}" height="${height}" fill="${theme.accent}" />`}
   ${logo?.at(options.logoX, options.logoY)}

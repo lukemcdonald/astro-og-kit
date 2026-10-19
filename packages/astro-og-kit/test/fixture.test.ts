@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { build, dev } from 'astro'
 
 import { defineOg } from '../src/index.ts'
-import { encodeRecord, extractRecords, isImageUrlOverride, pageUrl, pngSlug } from '../src/page-path.ts'
+import { encodeRecord, extractRecords, pageUrl, pngSlug } from '../src/page-path.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const fixture = join(root, 'test/fixture')
@@ -22,10 +22,6 @@ const tsc = join(root, '../../node_modules/typescript/bin/tsc')
 execFileSync(process.execPath, [tsc, '-p', 'tsconfig.build.json'], { cwd: root })
 
 test('carrier encode/extract and slug mapping', () => {
-  assert.equal(isImageUrlOverride('https://cdn.example.com/og.png'), true)
-  assert.equal(isImageUrlOverride('http://cdn.example.com/og.png'), true)
-  assert.equal(isImageUrlOverride('/custom.png'), false)
-  assert.equal(isImageUrlOverride({ fsPath: photo, src: '/_astro/photo.jpg' }), false)
   assert.equal(pngSlug('/docs/og/about.png', '/og', '/docs'), 'about')
   assert.equal(pngSlug('/og/about.png', '/og', '/docs'), 'about')
   assert.equal(pngSlug('/og/index.png', '/og', '/'), 'index')
@@ -58,10 +54,17 @@ test('carrier encode/extract and slug mapping', () => {
     pageUrl('localhost:4321', '/docs', 'index', { trailingSlash: 'never' }, true),
     'https://localhost:4321/docs',
   )
-  const encoded = encodeRecord({ pathname: '/about/', title: 'About' })
+  const encoded = encodeRecord({
+    heading: 'Luke McDonald',
+    pathname: '/about/',
+    photo,
+    title: 'Luke McDonald | Christian, Husband, Father and Wrestling Coach',
+  })
   const { html, records } = extractRecords(`<head><meta name="astro-og-kit" content="${encoded}"></head>`)
   assert.equal(html.includes('astro-og-kit'), false)
-  assert.equal(records[0]?.title, 'About')
+  assert.equal(records[0]?.heading, 'Luke McDonald')
+  assert.equal(records[0]?.photo, photo)
+  assert.equal(records[0]?.title, 'Luke McDonald | Christian, Husband, Father and Wrestling Coach')
   assert.equal(records[0]?.pathname, '/about/')
 })
 
@@ -72,10 +75,12 @@ test('astro build writes PNGs from OgMeta and strips the carrier', { timeout: 12
 
   const home = readFileSync(join(dist, 'og/index.png'))
   const about = readFileSync(join(dist, 'og/about.png'))
+  const named = readFileSync(join(dist, 'og/named.png'))
   assert.equal(home.readUInt32BE(0), 0x89504e47)
   assert.deepEqual([home.readUInt32BE(16), home.readUInt32BE(20)], [1200, 630])
   assert.equal(about.readUInt32BE(0), 0x89504e47)
   assert.equal(existsSync(join(dist, 'og/skip.png')), false)
+  assert.equal(existsSync(join(dist, 'og/override.png')), false)
   assert.match(
     readFileSync(join(dist, 'index.html'), 'utf8'),
     /content="https:\/\/example.com\/docs\/og\/index.png"/,
@@ -85,9 +90,24 @@ test('astro build writes PNGs from OgMeta and strips the carrier', { timeout: 12
     /content="https:\/\/cdn.example.com\/custom.png"/,
   )
   assert.match(
+    readFileSync(join(dist, 'override/index.html'), 'utf8'),
+    /content="https:\/\/example.com\/custom-share.jpg"/,
+  )
+  assert.doesNotMatch(readFileSync(join(dist, 'override/index.html'), 'utf8'), /og:image:width/)
+  assert.match(
     readFileSync(join(dist, 'about/index.html'), 'utf8'),
     /content="https:\/\/example.com\/docs\/og\/about.png"/,
   )
+  const namedHtml = readFileSync(join(dist, 'named/index.html'), 'utf8')
+  assert.match(
+    namedHtml,
+    /content="Luke McDonald \| Christian, Husband, Father and Wrestling Coach" property="og:title"/,
+  )
+  assert.match(
+    namedHtml,
+    /content="Luke McDonald \| Christian, Husband, Father and Wrestling Coach" name="twitter:title"/,
+  )
+  assert.match(namedHtml, /content="https:\/\/example.com\/docs\/og\/named.png"/)
   for (const name of readdirSync(dist, { recursive: true })) {
     if (String(name).endsWith('.html')) {
       assert.equal(readFileSync(join(dist, String(name)), 'utf8').includes('name="astro-og-kit"'), false)
@@ -99,8 +119,16 @@ test('astro build writes PNGs from OgMeta and strips the carrier', { timeout: 12
     font: { family: 'Inter', files: [font] },
     footer: 'example.com',
   })
-  const expected = Buffer.from(await og.render({ image: photo, pathname: '/', title: 'Home' }))
+  const expected = Buffer.from(await og.render({ pathname: '/', photo, title: 'Home' }))
   assert.equal(home.equals(expected), true)
+
+  const namedTitle = 'Luke McDonald | Christian, Husband, Father and Wrestling Coach'
+  const namedHeading = Buffer.from(
+    await og.render({ heading: 'Luke McDonald', pathname: '/named/', photo, title: namedTitle }),
+  )
+  const namedAsTitle = Buffer.from(await og.render({ pathname: '/named/', photo, title: namedTitle }))
+  assert.equal(named.equals(namedHeading), true)
+  assert.equal(named.equals(namedAsTitle), false)
 })
 
 test('astro dev serves og:image before the page is requested', { timeout: 120_000 }, async () => {
