@@ -1,13 +1,21 @@
 ---
 import type { Og, OgMetaInput } from 'astro-og-kit'
+import { build, trailingSlash } from 'astro:config/client'
 
-type Props = Omit<OgMetaInput, 'site' | 'url'> & { og: Og }
+type Props = Omit<OgMetaInput, 'buildFormat' | 'canonical' | 'site' | 'trailingSlash' | 'url'> & {
+  og: Og
+  /** Override og:url. String or URL; relative values resolve against `Astro.site`. */
+  url?: string | URL
+}
 
-const { og, ...input } = Astro.props
+const { og, url, ...input } = Astro.props
 const tags = og.meta({
   ...input,
+  buildFormat: build.format,
+  canonical: url,
   deployBase: import.meta.env.BASE_URL,
   site: Astro.site,
+  trailingSlash,
   url: Astro.url,
 })
 ---

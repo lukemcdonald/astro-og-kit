@@ -3,8 +3,12 @@ import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-import { defineOg } from '../src/index.ts'
-import { createMeta, imagePath } from '../src/route.ts'
+import { HEIGHT, WIDTH, defineOg } from '../src/index.ts'
+import { createMeta, imagePath, pagePath } from '../src/route.ts'
+
+function tag(tags: ReturnType<ReturnType<typeof createMeta>>, key: string) {
+  return tags.find((t) => ('property' in t && t.property === key) || ('name' in t && t.name === key))?.content
+}
 
 const font = fileURLToPath(
   new URL('../../../examples/editorial/src/assets/Inter-SemiBold.ttf', import.meta.url),
@@ -22,11 +26,10 @@ test('path and meta', () => {
     title: 'About',
     url: '/about/',
   })
-  assert.ok(
-    tags.some(
-      (t) => 'property' in t && t.property === 'og:image' && t.content === 'https://example.com/og/about.png',
-    ),
-  )
+  assert.equal(tag(tags, 'og:image'), 'https://example.com/og/about.png')
+  assert.equal(tag(tags, 'og:url'), 'https://example.com/about/')
+  assert.equal(WIDTH, 1200)
+  assert.equal(HEIGHT, 630)
 })
 
 test('path and meta honor Astro base', () => {
@@ -36,6 +39,10 @@ test('path and meta honor Astro base', () => {
   assert.equal(imagePath('/', '/og', '/docs'), '/docs/og/index.png')
   assert.equal(imagePath('/about/team/', '/og', '/docs/'), '/docs/og/about/team.png')
   assert.equal(imagePath('/about/', '/og', '/'), '/og/about.png')
+  assert.equal(imagePath('/about.html', '/og', '/'), '/og/about.png')
+  assert.equal(imagePath('/about/index.html', '/og', '/'), '/og/about.png')
+  assert.equal(imagePath('/index.html', '/og', '/'), '/og/index.png')
+  assert.equal(imagePath('/docs/about.html', '/og', '/docs'), '/docs/og/about.png')
 
   const og = defineOg({ font: { family: 'Inter', files: [font] } })
   assert.equal(og.path('/about/', '/docs'), '/docs/og/about.png')
@@ -76,6 +83,115 @@ test('example route files match Astro prerender regex', () => {
     const source = readFileSync(new URL(file, import.meta.url), 'utf8')
     assert.match(source, ASTRO_PRERENDER)
   }
+})
+
+test('pagePath strips file output and honors trailingSlash', () => {
+  assert.equal(pagePath('/index.html'), '/')
+  assert.equal(pagePath('/about/x.html'), '/about/x')
+  assert.equal(pagePath('/about/x.html', { trailingSlash: 'always' }), '/about/x/')
+  assert.equal(pagePath('/about/x.html', { trailingSlash: 'never' }), '/about/x')
+  assert.equal(pagePath('/about/x.html', { buildFormat: 'file', trailingSlash: 'ignore' }), '/about/x')
+  assert.equal(pagePath('/about/x', { buildFormat: 'directory', trailingSlash: 'ignore' }), '/about/x/')
+  assert.equal(pagePath('/about/x/', { trailingSlash: 'never' }), '/about/x')
+  assert.equal(pagePath('/about/team/index.html', { trailingSlash: 'always' }), '/about/team/')
+  assert.equal(pagePath('/about/team/index.html', { trailingSlash: 'never' }), '/about/team')
+  assert.equal(pagePath('/docs/index.html', { trailingSlash: 'never' }), '/docs')
+})
+
+test('meta normalizes file URLs for og:url and og:image', () => {
+  const meta = createMeta((pathname, deployBase) => imagePath(pathname, '/og', deployBase ?? '/'))
+
+  const file = meta({
+    buildFormat: 'file',
+    site: 'https://example.com',
+    title: 'About',
+    trailingSlash: 'ignore',
+    url: 'https://example.com/about/x.html',
+  })
+  assert.equal(tag(file, 'og:url'), 'https://example.com/about/x')
+  assert.equal(tag(file, 'og:image'), 'https://example.com/og/about/x.png')
+
+  const fileSlash = meta({
+    buildFormat: 'file',
+    site: 'https://example.com',
+    title: 'About',
+    trailingSlash: 'always',
+    url: 'https://example.com/about/x.html',
+  })
+  assert.equal(tag(fileSlash, 'og:url'), 'https://example.com/about/x/')
+  assert.equal(tag(fileSlash, 'og:image'), 'https://example.com/og/about/x.png')
+
+  const home = meta({
+    buildFormat: 'file',
+    site: 'https://example.com',
+    title: 'Home',
+    url: 'https://example.com/index.html',
+  })
+  assert.equal(tag(home, 'og:url'), 'https://example.com/')
+  assert.equal(tag(home, 'og:image'), 'https://example.com/og/index.png')
+
+  const nested = meta({
+    buildFormat: 'file',
+    site: 'https://example.com',
+    title: 'Team',
+    trailingSlash: 'never',
+    url: 'https://example.com/about/team/index.html',
+  })
+  assert.equal(tag(nested, 'og:url'), 'https://example.com/about/team')
+  assert.equal(tag(nested, 'og:image'), 'https://example.com/og/about/team.png')
+
+  const directory = meta({
+    buildFormat: 'directory',
+    site: 'https://example.com',
+    title: 'About',
+    trailingSlash: 'ignore',
+    url: 'https://example.com/about/x',
+  })
+  assert.equal(tag(directory, 'og:url'), 'https://example.com/about/x/')
+  assert.equal(tag(directory, 'og:image'), 'https://example.com/og/about/x.png')
+})
+
+test('meta honors base paths and url override', () => {
+  const meta = createMeta((pathname, deployBase) => imagePath(pathname, '/og', deployBase ?? '/'))
+
+  const base = meta({
+    buildFormat: 'file',
+    deployBase: '/docs',
+    site: 'https://origin',
+    title: 'About',
+    url: 'https://origin/docs/about.html',
+  })
+  assert.equal(tag(base, 'og:url'), 'https://origin/docs/about')
+  assert.equal(tag(base, 'og:image'), 'https://origin/docs/og/about.png')
+
+  const baseHome = meta({
+    buildFormat: 'file',
+    deployBase: '/docs',
+    site: 'https://origin',
+    title: 'Home',
+    trailingSlash: 'always',
+    url: 'https://origin/docs/index.html',
+  })
+  assert.equal(tag(baseHome, 'og:url'), 'https://origin/docs/')
+  assert.equal(tag(baseHome, 'og:image'), 'https://origin/docs/og/index.png')
+
+  const override = meta({
+    canonical: '/contact',
+    site: 'https://example.com',
+    title: 'About',
+    url: 'https://example.com/about/x.html',
+  })
+  assert.equal(tag(override, 'og:url'), 'https://example.com/contact')
+  assert.equal(tag(override, 'og:image'), 'https://example.com/og/about/x.png')
+
+  const absolute = meta({
+    canonical: new URL('https://cdn.example/canonical'),
+    site: 'https://example.com',
+    title: 'About',
+    url: '/about/',
+  })
+  assert.equal(tag(absolute, 'og:url'), 'https://cdn.example/canonical')
+  assert.equal(tag(absolute, 'og:image'), 'https://example.com/og/about.png')
 })
 
 test('route() lists paths and rejects GET without title', async () => {

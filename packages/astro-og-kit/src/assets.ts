@@ -5,6 +5,7 @@ import { isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { assertSfntFont } from './font.ts'
+import { loadSharp } from './native.ts'
 import { raw, svg } from './svg.ts'
 
 /** Sniff the real format; extensions lie (a ".jpg" that is really WebP is common). */
@@ -92,29 +93,20 @@ export function readFont(path: string) {
   })
 }
 
-let sharpModule: Promise<typeof import('sharp').default | undefined> | undefined
-
-/** sharp is optional: Astro installs it, and we only reach for it when we must. */
-export function loadSharp() {
-  sharpModule ??= import('sharp').then(
-    (mod) => mod.default,
-    () => undefined,
-  )
-
-  return sharpModule
-}
-
 export type ImageData = { height: number; href: string; width: number }
 
-/** Read an image as a data URI resvg can draw (PNG, JPEG, GIF; WebP/AVIF via sharp). */
-export function loadImage(source: OgImageSource): Promise<ImageData> {
-  const path = resolvePath(source)
+export type ImageFit = { maxHeight: number; maxWidth: number }
 
-  return cached(`uri:${path}`, async () => {
+/** Read an image as a data URI resvg can draw (PNG, JPEG, GIF; WebP/AVIF via sharp). */
+export function loadImage(source: OgImageSource, fit?: ImageFit): Promise<ImageData> {
+  const path = resolvePath(source)
+  const fitKey = fit ? `${fit.maxHeight}x${fit.maxWidth}` : ''
+
+  return cached(`uri:${path}:${fitKey}`, async () => {
     let bytes = read(path)
     let mime = sniff(bytes)
     if (mime === 'image/webp' || mime === 'image/avif') {
-      const sharp = await loadSharp()
+      const sharp = loadSharp()
       if (!sharp) {
         throw new Error(`[astro-og-kit] ${path} is ${mime}. Install sharp, or use a PNG or JPEG.`)
       }
@@ -127,9 +119,31 @@ export function loadImage(source: OgImageSource): Promise<ImageData> {
       )
     }
 
+    const size = rasterSize(bytes)
+    if (fit && (size.height > fit.maxHeight || size.width > fit.maxWidth)) {
+      const sharp = loadSharp()
+      if (sharp) {
+        const resized = sharp(bytes).resize({
+          fit: 'inside',
+          height: fit.maxHeight,
+          width: fit.maxWidth,
+          withoutEnlargement: true,
+        })
+        if (mime === 'image/jpeg') {
+          bytes = await resized.jpeg({ quality: 85 }).toBuffer()
+        } else {
+          bytes = await resized.png().toBuffer()
+          mime = 'image/png'
+        }
+      }
+    }
+
+    const { height, width } = rasterSize(bytes)
+
     return {
+      height,
       href: `data:${mime};base64,${bytes.toString('base64')}`,
-      ...rasterSize(bytes),
+      width,
     }
   })
 }
@@ -179,14 +193,18 @@ export async function loadLogo(
   if (!viewBox || !vbWidth || !vbHeight) {
     throw new Error(`[astro-og-kit] Logo needs a viewBox: ${path}`)
   }
-  const inner = source.replace(/^[\s\S]*?<svg[^>]*>/i, '').replace(/<\/svg>\s*$/i, '')
+  const inner = source
+    .replace(/^[\s\S]*?<svg[^>]*>/i, '')
+    .replace(/<\/svg>\s*$/i, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
   const height = (width * vbHeight) / vbWidth
+  const color = logo.color ?? defaults.color
   const style = logo.css ? svg`<style>${raw(logo.css)}</style>` : ''
 
   return {
+    at: (x, y) =>
+      svg`<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="${viewBox}" color="${color}" fill="${color}">${style}${raw(inner)}</svg>`,
     height,
     width,
-    at: (x, y) =>
-      svg`<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="${viewBox}" fill="${logo.color ?? defaults.color}">${style}${raw(inner)}</svg>`,
   }
 }

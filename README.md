@@ -10,7 +10,7 @@ Build-time Open Graph images for Astro. SVG templates, rendered to PNG with
 ## Install
 
 ```sh
-npm install astro-og-kit@next
+npm i astro-og-kit
 ```
 
 ## Quick start
@@ -46,7 +46,8 @@ import { og } from '../og'
 ```
 
 Set `site` in `astro.config` so image URLs are absolute. Pass the imported image object into
-`image`, not `.src`.
+`image`, not `.src`. Optional `url` (string or URL) overrides `og:url`; relative values use
+`Astro.site`.
 
 ## Templates
 
@@ -85,7 +86,7 @@ export const og = defineOg({
 ```
 
 Tweak a built-in without writing a template: `template: editorial({ titleSize: 64, accentBar: false })`
-(`titleMaxLines`, `titleMaxWidth`).
+(`titleLineHeight`, `titleMaxLines`, `titleMaxWidth`).
 
 ## Custom template
 
@@ -134,6 +135,7 @@ export const og = defineOg({
 | `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns it off. |
 
 Per page: `title`, `pathname`, `image`, `background`, `footer`, `template`, `theme`, `data`.
+`WIDTH` and `HEIGHT` (`1200`, `630`) are exported for custom templates.
 
 ## More
 

@@ -4,14 +4,15 @@ import { createHash, randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { Resvg } from '@resvg/resvg-js'
-
-import { loadImage, loadLogo, loadSharp, readFont, resolvePath } from './assets.ts'
+import { loadImage, loadLogo, readFont, resolvePath } from './assets.ts'
 import { fontMetrics } from './font.ts'
+import { loadResvg, loadSharp } from './native.ts'
 import { templates } from './templates/index.ts'
 
 export const HEIGHT = 630
 export const WIDTH = 1200
+/** Default editorial photo panel width; downscale cap is 2× this. */
+const PHOTO_WIDTH = 520
 
 const VERSION = '1'
 
@@ -44,7 +45,8 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
   const background = page.background === false ? undefined : (page.background ?? config.background)
   const footer = page.footer === false ? '' : (page.footer ?? config.footer ?? '')
 
-  const backgroundImage = background && (await loadImage(background.src))
+  const backgroundImage =
+    background && (await loadImage(background.src, { maxHeight: HEIGHT * 2, maxWidth: WIDTH * 2 }))
   const fontFile = config.font.files[0]
   if (!fontFile) {
     throw new Error('[astro-og-kit] font.files must include a TTF or OTF file.')
@@ -67,7 +69,9 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
     },
     footer,
     height: HEIGHT,
-    image: page.image ? await loadImage(page.image) : undefined,
+    image: page.image
+      ? await loadImage(page.image, { maxHeight: HEIGHT * 2, maxWidth: PHOTO_WIDTH * 2 })
+      : undefined,
     logo: config.logo && (await loadLogo(config.logo, { color: theme.foreground, width: 96 })),
     page,
     theme,
@@ -82,19 +86,24 @@ export async function renderSvg(config: OgConfig, page: OgPage): Promise<string>
   return String(template(await buildContext(config, page)))
 }
 
-async function compress(png: Uint8Array) {
-  const sharp = await loadSharp()
-  if (!sharp) {
-    return png
-  }
+let missingSharpWarned = false
 
+function warnMissingSharp() {
+  if (missingSharpWarned) {
+    return
+  }
+  missingSharpWarned = true
+  console.warn('[astro-og-kit] compress is on but sharp could not be loaded. Install sharp to shrink PNGs.')
+}
+
+async function compress(png: Uint8Array, sharp: NonNullable<ReturnType<typeof loadSharp>>) {
   return sharp(png).png({ compressionLevel: 9, palette: true, quality: 80 }).toBuffer()
 }
 
-function cacheKey(config: OgConfig, svgMarkup: string) {
+function cacheKey(config: OgConfig, svgMarkup: string, compressed: boolean) {
   const hash = createHash('sha256')
     .update(VERSION)
-    .update(String(config.compress ?? true))
+    .update(compressed ? '1' : '0')
     .update(svgMarkup)
   for (const file of config.font.files) {
     hash.update(readFont(resolvePath(file)))
@@ -121,9 +130,14 @@ function writeCache(cacheFile: string, png: Uint8Array) {
 /** Render one page to PNG bytes. */
 export async function renderPng(config: OgConfig, page: OgPage): Promise<Uint8Array> {
   const svgMarkup = await renderSvg(config, page)
+  const sharp = config.compress === false ? undefined : loadSharp()
+  if (config.compress !== false && !sharp) {
+    warnMissingSharp()
+  }
+  const compressed = Boolean(sharp)
   const cacheDir =
     config.cacheDir === false ? undefined : resolvePath(config.cacheDir ?? 'node_modules/.astro-og-kit')
-  const cacheFile = cacheDir && join(cacheDir, `${cacheKey(config, svgMarkup)}.png`)
+  const cacheFile = cacheDir && join(cacheDir, `${cacheKey(config, svgMarkup, compressed)}.png`)
 
   if (cacheFile && existsSync(cacheFile)) {
     const hit = readFileSync(cacheFile)
@@ -132,6 +146,7 @@ export async function renderPng(config: OgConfig, page: OgPage): Promise<Uint8Ar
     }
   }
 
+  const { Resvg } = loadResvg()
   const resvg = new Resvg(svgMarkup, {
     fitTo: { mode: 'width', value: WIDTH },
     font: {
@@ -141,7 +156,7 @@ export async function renderPng(config: OgConfig, page: OgPage): Promise<Uint8Ar
     },
   })
   const raw = resvg.render().asPng()
-  const png = config.compress === false ? raw : await compress(raw)
+  const png = sharp ? await compress(raw, sharp) : raw
 
   if (cacheDir && cacheFile) {
     mkdirSync(cacheDir, { recursive: true })

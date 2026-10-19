@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url'
 
 import sharp from 'sharp'
 
-import { defineOg, fontMetrics, svg, wrapText } from '../src/index.ts'
+import { loadNative, loadResvg } from '../src/native.ts'
+import { defineOg, editorial, fontMetrics, svg, wrapText } from '../src/index.ts'
 
 const font = fileURLToPath(
   new URL('../../../examples/editorial/src/assets/Inter-SemiBold.ttf', import.meta.url),
@@ -16,6 +17,12 @@ const merriweather = fileURLToPath(
   new URL('../../../examples/backdrop/src/assets/Merriweather-Bold.ttf', import.meta.url),
 )
 const logo = fileURLToPath(new URL('../../../examples/editorial/public/logo.svg', import.meta.url))
+
+test('loadResvg uses createRequire from the package', () => {
+  const { Resvg } = loadResvg()
+  assert.equal(typeof Resvg, 'function')
+  assert.throws(() => loadNative('this-package-does-not-exist-og-kit'), /Cannot find module/)
+})
 
 test('svg escapes values but keeps nested markup', () => {
   const inner = svg`<b>${'<i>'}</b>`
@@ -164,6 +171,114 @@ test('page footer: false hides the site footer', async () => {
   assert.match(shown, />example.com</)
   const hidden = await og.svg({ footer: false, title: 'Hello' })
   assert.doesNotMatch(hidden, /example.com/)
+})
+
+test('titleLineHeight spaces wrapped title lines', async () => {
+  const og = defineOg({
+    cacheDir: false,
+    font: { family: 'Inter', files: [font] },
+    template: editorial({ titleLineHeight: 2, titleMaxWidth: 200, titleSize: 50 }),
+  })
+  const markup = await og.svg({ title: 'One Two Three Four' })
+  const ys = [...markup.matchAll(/<tspan x="96" y="(\d+(?:\.\d+)?)"/g)].map((match) => Number(match[1]))
+  assert.ok(ys.length >= 2, markup)
+  assert.equal(ys[1]! - ys[0]!, 100)
+})
+
+test('logo currentColor inherits wrapper color and inner style is stripped', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-logo-'))
+  const logoSvg = join(dir, 'mark.svg')
+  writeFileSync(
+    logoSvg,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+      <style>path { fill: #ff0000 } text { fill: #00ff00 }</style>
+      <path fill="currentColor" d="M0 0h10v10H0z"/>
+    </svg>`,
+  )
+  const og = defineOg({
+    cacheDir: false,
+    font: { family: 'Inter', files: [font] },
+    logo: { src: logoSvg, width: 40 },
+    theme: { foreground: '#123456' },
+  })
+  const markup = await og.svg({ title: 'Hello' })
+  assert.match(markup, /color="#123456"/)
+  assert.match(markup, /fill="#123456"/)
+  assert.match(markup, /fill="currentColor"/)
+  assert.doesNotMatch(markup, /path \{ fill: #ff0000/)
+  assert.doesNotMatch(markup, /text \{ fill: #00ff00/)
+  assert.match(markup, /fill="#123456"[^>]*>[\s\S]*Hello/)
+})
+
+test('sharp downscales large photos and never upscales small ones', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-photo-'))
+  const large = join(dir, 'large.png')
+  const small = join(dir, 'small.png')
+  await sharp({
+    create: { background: '#336699', channels: 3, height: 3000, width: 4000 },
+  })
+    .png()
+    .toFile(large)
+  await sharp({
+    create: { background: '#993366', channels: 3, height: 40, width: 50 },
+  })
+    .png()
+    .toFile(small)
+
+  const og = defineOg({
+    cacheDir: dir,
+    compress: false,
+    font: { family: 'Inter', files: [font] },
+    template: 'editorial',
+  })
+  const largeSvg = await og.svg({ image: large, title: 'Large' })
+  const largeHref = largeSvg.match(/href="data:image\/png;base64,([^"]+)"/)?.[1]
+  assert.ok(largeHref)
+  const largeMeta = await sharp(Buffer.from(largeHref, 'base64')).metadata()
+  assert.ok((largeMeta.width ?? 0) <= 1040, `width ${largeMeta.width}`)
+  assert.ok((largeMeta.height ?? 0) <= 1260, `height ${largeMeta.height}`)
+  assert.ok((largeMeta.width ?? 0) < 4000)
+
+  const backdrop = defineOg({
+    background: { src: large },
+    cacheDir: false,
+    compress: false,
+    font: { family: 'Inter', files: [font] },
+    template: 'backdrop',
+  })
+  const backdropSvg = await backdrop.svg({ title: 'Back' })
+  assert.match(backdropSvg, /width="1680" height="1260"/)
+
+  const smallOg = defineOg({
+    cacheDir: false,
+    compress: false,
+    font: { family: 'Inter', files: [font] },
+  })
+  const smallSvg = await smallOg.svg({ image: small, title: 'Small' })
+  const smallHref = smallSvg.match(/href="data:image\/png;base64,([^"]+)"/)?.[1]
+  assert.ok(smallHref)
+  const smallMeta = await sharp(Buffer.from(smallHref, 'base64')).metadata()
+  assert.equal(smallMeta.width, 50)
+  assert.equal(smallMeta.height, 40)
+})
+
+test('cache key follows whether compression ran', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-compress-'))
+  const rawOg = defineOg({
+    cacheDir: dir,
+    compress: false,
+    font: { family: 'Inter', files: [font] },
+  })
+  const raw = Buffer.from(await rawOg.render({ title: 'Sized' }))
+  const packedOg = defineOg({
+    cacheDir: dir,
+    compress: true,
+    font: { family: 'Inter', files: [font] },
+  })
+  const packed = Buffer.from(await packedOg.render({ title: 'Sized' }))
+  const pngs = readdirSync(dir).filter((name) => name.endsWith('.png'))
+  assert.equal(pngs.length, 2)
+  assert.ok(packed.length < raw.length)
 })
 
 test('tells you to pass the imported image object, not .src', async () => {

@@ -13,6 +13,8 @@ export type FrameOptions = {
   logoY?: number
   /** Width of the page photo panel (editorial). */
   photoWidth?: number
+  /** Title line-height as a multiple of `titleSize`. Default 1.18. */
+  titleLineHeight?: number
   /** Title lines before truncating with an ellipsis. Default 3. */
   titleMaxLines?: number
   /** Cap on title line width in px. `0` uses the full text column. */
@@ -55,7 +57,7 @@ export function frame(options: Required<FrameOptions>): OgTemplate {
       maxWidth,
       measure: (line) => font.width(line, options.titleSize),
     })
-    const lineHeight = Math.round(options.titleSize * 1.18)
+    const lineHeight = Math.round(options.titleSize * options.titleLineHeight)
     const centerY = height / 2 + 3
     // Center the title, but never let a long one crowd the logo.
     const belowLogo = logo ? options.logoY + logo.height + options.titleSize * 0.75 + 40 : 0

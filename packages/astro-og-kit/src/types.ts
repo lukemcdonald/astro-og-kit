@@ -24,7 +24,7 @@ export type OgFont = {
 export type OgImageSource = string | URL | { fsPath?: string; src: string }
 
 export type OgLogo = {
-  /** Fill for SVG shapes that don't set their own (the `currentColor` of your logo). */
+  /** CSS `color` and `fill` on the logo wrapper, so `currentColor` paths inherit it. */
   color?: string
   /** Extra CSS scoped to the logo, e.g. `.accent { fill: #e8ddc1 }`. */
   css?: string
@@ -106,7 +106,7 @@ export type OgConfig = {
   background?: OgBackground
   /** Reuse renders across builds. Default "node_modules/.astro-og-kit"; `false` disables. */
   cacheDir?: string | false
-  /** Quantize PNGs with sharp when it's installed (Astro ships it). Default true. */
+  /** Quantize PNGs with sharp when it's installed. Default true. Warns once if sharp cannot be loaded. */
   compress?: boolean
   font: OgFont
   /** Site-wide small line, usually the site name or domain. */
@@ -123,9 +123,16 @@ export type OgConfig = {
 }
 
 export type OgMetaInput = {
-  description?: string
+  /** Astro `build.format`. `<OgMeta>` sets this from `astro:config`. */
+  buildFormat?: 'directory' | 'file' | 'preserve'
+  /**
+   * Override og:url. Relative values resolve against `site`.
+   * `<OgMeta url>` sets this. Does not change og:image.
+   */
+  canonical?: URL | string
   /** Astro deploy base. `<OgMeta>` sets this from `import.meta.env.BASE_URL`. */
   deployBase?: string
+  description?: string
   /**
    * Override the generated og:image URL. When set, width/height tags are omitted.
    * Leave unset and let `meta()` / `<OgMeta>` generate the URL.
@@ -136,9 +143,11 @@ export type OgMetaInput = {
   site?: URL | string
   siteName?: string
   title: string
+  /** Astro `trailingSlash`. `<OgMeta>` sets this from `astro:config`. Default "ignore". */
+  trailingSlash?: 'always' | 'ignore' | 'never'
   /** og:type. Default "website". */
   type?: string
-  /** Page URL or path, e.g. `Astro.url`. */
+  /** Page URL or path, e.g. `Astro.url`. Used for og:image and the default og:url. */
   url: URL | string
 }
 

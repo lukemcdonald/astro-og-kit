@@ -50,6 +50,57 @@ function slugFor(pathname: string): string {
   return trimmed
 }
 
+/** Match Astro's shouldAppendForwardSlash (trailingSlash + build.format). */
+function appendSlash(
+  trailingSlash: NonNullable<OgMetaInput['trailingSlash']> = 'ignore',
+  buildFormat?: OgMetaInput['buildFormat'],
+): boolean | undefined {
+  if (trailingSlash === 'always') {
+    return true
+  }
+  if (trailingSlash === 'never') {
+    return false
+  }
+  if (buildFormat === 'directory') {
+    return true
+  }
+  if (buildFormat === 'file' || buildFormat === 'preserve') {
+    return false
+  }
+
+  return undefined
+}
+
+/**
+ * Route path from a build URL. Strips `/index.html` and `.html` so og:url
+ * and og:image share one path, then applies trailingSlash / build.format.
+ */
+export function pagePath(
+  pathname: string,
+  options: { buildFormat?: OgMetaInput['buildFormat']; trailingSlash?: OgMetaInput['trailingSlash'] } = {},
+): string {
+  const { buildFormat, trailingSlash = 'ignore' } = options
+  let path = pathname.startsWith('/') ? pathname : `/${pathname}`
+  if (path.endsWith('/index.html')) {
+    path = path.slice(0, -'index.html'.length) || '/'
+  } else if (path.endsWith('.html')) {
+    path = path.slice(0, -'.html'.length)
+  }
+  if (path === '' || path === '/') {
+    return '/'
+  }
+
+  const slash = appendSlash(trailingSlash, buildFormat)
+  if (slash === true) {
+    return path.endsWith('/') ? path : `${path}/`
+  }
+  if (slash === false) {
+    return path.replace(/\/+$/, '') || '/'
+  }
+
+  return path
+}
+
 /**
  * Image URL path. `pathname` is the page path; `prefix` is the image route
  * (`/og`); `deployBase` is Astro's `base`. The deploy base is stripped from
@@ -57,21 +108,40 @@ function slugFor(pathname: string): string {
  */
 export function imagePath(pathname: string, prefix = '/og', deployBase = '/'): string {
   const deploy = normalizeBase(deployBase)
-  const slug = slugFor(stripDeployBase(pathname, deploy))
+  const slug = slugFor(stripDeployBase(pagePath(pathname), deploy))
 
   return joinUrl(deploy, prefix, `${slug}.png`)
 }
 
 export function createMeta(path: (pathname: string, deployBase?: string) => string) {
   return (input: OgMetaInput): OgMetaTag[] => {
-    const { deployBase, description, image, imageAlt, site, siteName, title, type = 'website', url } = input
+    const {
+      buildFormat,
+      canonical,
+      deployBase,
+      description,
+      image,
+      imageAlt,
+      site,
+      siteName,
+      title,
+      trailingSlash,
+      type = 'website',
+      url,
+    } = input
     const pageUrl = new URL(url, site)
-    const imageUrl = new URL(image ?? path(pageUrl.pathname, deployBase), site ?? pageUrl).toString()
+    const route = pagePath(pageUrl.pathname, { buildFormat, trailingSlash })
+    const ogUrl = canonical
+      ? new URL(canonical, site ?? pageUrl).toString()
+      : site
+        ? new URL(route, site).toString()
+        : undefined
+    const imageUrl = new URL(image ?? path(route, deployBase), site ?? pageUrl).toString()
     const tags: [string, string | undefined, 'name' | 'property'][] = [
       ['og:title', title, 'property'],
       ['og:description', description, 'property'],
       ['og:type', type, 'property'],
-      ['og:url', site ? pageUrl.toString() : undefined, 'property'],
+      ['og:url', ogUrl, 'property'],
       ['og:site_name', siteName, 'property'],
       ['og:image', imageUrl, 'property'],
       ['og:image:width', image ? undefined : String(WIDTH), 'property'],
