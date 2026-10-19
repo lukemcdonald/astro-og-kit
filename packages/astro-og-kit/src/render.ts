@@ -4,7 +4,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { loadImage, loadLogo, readFont, resolvePath } from './assets.ts'
+import { loadImage, loadLogo, photoSource, readFont, resolvePath } from './assets.ts'
 import { fontMetrics } from './font.ts'
 import { loadResvg, loadSharp } from './native.ts'
 import { templates } from './templates/index.ts'
@@ -34,17 +34,16 @@ function pickTemplate(option: OgPage['template']): OgTemplate {
     return option
   }
 
-  return templates[option ?? 'editorial']
+  return templates[option ?? 'split']
 }
 
 /** Everything a template needs for one page. */
 export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTemplateContext> {
-  const theme = { ...DEFAULT_THEME, ...config.theme, ...page.theme }
-  const background = page.background === false ? undefined : (page.background ?? config.background)
+  const merged = { ...DEFAULT_THEME, ...config.theme, ...page.theme }
+  const theme = { ...merged, overlay: merged.overlay ?? merged.background }
   const footer = page.footer === false ? '' : (page.footer ?? config.footer ?? '')
   const logo = page.logo === false ? undefined : { ...config.logo, ...page.logo }
-
-  const backgroundImage = background && (await loadImage(background.src))
+  const resolved = photoSource(page.photo === false ? undefined : (page.photo ?? config.photo))
   const fontFile = config.font.files[0]
   if (!fontFile) {
     throw new Error('[astro-og-kit] font.files must include a TTF or OTF file.')
@@ -52,14 +51,6 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
   const metrics = fontMetrics(readFont(resolvePath(fontFile)))
 
   return {
-    background: background &&
-      backgroundImage && {
-        ...backgroundImage,
-        opacity: background.opacity ?? 0.7,
-        overlay: background.overlay ?? theme.background,
-        position: background.position ?? 'center',
-        viewBox: (background.crop ?? [0, 0, backgroundImage.width, backgroundImage.height]).join(' '),
-      },
     font: {
       family: config.font.family,
       weight: config.font.weight ?? 700,
@@ -67,11 +58,9 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
     },
     footer,
     height: HEIGHT,
-    logo: logo?.src
-      ? await loadLogo({ ...logo, src: logo.src }, { color: theme.foreground, width: 96 })
-      : undefined,
+    logo: logo?.src ? await loadLogo({ ...logo, src: logo.src }, { width: 96 }) : undefined,
     page: { ...page, title: page.heading ?? page.title },
-    photo: page.photo ? await loadImage(page.photo) : undefined,
+    photo: resolved && { ...(await loadImage(resolved.src)), position: resolved.position },
     theme,
     width: WIDTH,
   }

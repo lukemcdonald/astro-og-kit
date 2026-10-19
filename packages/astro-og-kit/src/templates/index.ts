@@ -5,16 +5,15 @@ import { frame } from './frame.ts'
 
 export type { FrameOptions }
 
-/**
- * Solid canvas, title on the left, and the page photo (if any) in a panel
- * on the right. The lukemcdonald.com look.
- */
-export function editorial(options: FrameOptions = {}): OgTemplate {
+/** Title on the left, photo (if any) in a panel on the right. */
+export function split(options: FrameOptions = {}): OgTemplate {
   return frame({
     accentBar: true,
     balance: false,
+    cover: false,
     logoX: 96,
     logoY: 80,
+    opacity: 0.7,
     photoWidth: 520,
     titleLineHeight: 1.18,
     titleMaxLines: 3,
@@ -24,16 +23,15 @@ export function editorial(options: FrameOptions = {}): OgTemplate {
   })
 }
 
-/**
- * Full-bleed background photo under a tinted overlay, title on top.
- * The bbcmonticello.com look.
- */
-export function backdrop(options: FrameOptions = {}): OgTemplate {
+/** Full-bleed photo behind the title, with a tinted overlay. */
+export function cover(options: FrameOptions = {}): OgTemplate {
   return frame({
     accentBar: true,
     balance: true,
+    cover: true,
     logoX: 96,
     logoY: 48,
+    opacity: 0.7,
     photoWidth: 520,
     titleLineHeight: 1.18,
     titleMaxLines: 3,
@@ -44,6 +42,6 @@ export function backdrop(options: FrameOptions = {}): OgTemplate {
 }
 
 export const templates = {
-  backdrop: backdrop(),
-  editorial: editorial(),
+  cover: cover(),
+  split: split(),
 } as const

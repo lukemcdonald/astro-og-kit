@@ -8,10 +8,14 @@ export type FrameOptions = {
   accentBar?: boolean | number
   /** Balance line lengths instead of filling greedily. Per-template default. */
   balance?: boolean
+  /** Draw the photo full-bleed under an overlay instead of a right-side panel. */
+  cover?: boolean
   /** Logo position from the top-left corner. */
   logoX?: number
   logoY?: number
-  /** Width of the page photo panel (editorial). */
+  /** Overlay opacity when `cover` is set. Default 0.7. */
+  opacity?: number
+  /** Width of the page photo panel (split). */
   photoWidth?: number
   /** Title line-height as a multiple of `titleSize`. Default 1.18. */
   titleLineHeight?: number
@@ -47,9 +51,9 @@ function accentWidth(accentBar: boolean | number) {
  * accent bar, logo top-left, title centered vertically, footer near the bottom.
  */
 export function frame(options: Required<FrameOptions>): OgTemplate {
-  return ({ background, font, footer, height, logo, page, photo, theme, width }: OgTemplateContext) => {
-    const photoWidth = photo ? options.photoWidth : 0
-    const textWidth = width - PAD * 2 - photoWidth
+  return ({ font, footer, height, logo, page, photo, theme, width }: OgTemplateContext) => {
+    const panel = photo && !options.cover ? options.photoWidth : 0
+    const textWidth = width - PAD * 2 - panel
     const maxWidth = Math.min(textWidth, options.titleMaxWidth || textWidth)
     const lines = wrapText(page.title, {
       balance: options.balance,
@@ -63,17 +67,20 @@ export function frame(options: Required<FrameOptions>): OgTemplate {
     const belowLogo = logo ? options.logoY + logo.height + options.titleSize * 0.75 + 40 : 0
     const firstY = Math.max(centerY - ((lines.length - 1) * lineHeight) / 2, belowLogo)
     const bar = accentWidth(options.accentBar)
+    const fit = photo ? POSITION[photo.position] : POSITION.center
 
     return svg`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <rect width="${width}" height="${height}" fill="${theme.background}" />
   ${
-    background &&
-    svg`<svg width="${width}" height="${height}" viewBox="${background.viewBox}" preserveAspectRatio="${POSITION[background.position]} slice"><image href="${background.href}" width="${background.width}" height="${background.height}" /></svg>
-  <rect width="${width}" height="${height}" fill="${background.overlay}" fill-opacity="${background.opacity}" />`
+    photo &&
+    options.cover &&
+    svg`<svg width="${width}" height="${height}" viewBox="0 0 ${photo.width} ${photo.height}" preserveAspectRatio="${fit} slice"><image href="${photo.href}" width="${photo.width}" height="${photo.height}" /></svg>
+  <rect width="${width}" height="${height}" fill="${theme.overlay}" fill-opacity="${options.opacity}" />`
   }
   ${
     photo &&
-    svg`<image href="${photo.href}" x="${width - photoWidth}" width="${photoWidth}" height="${height}" preserveAspectRatio="xMidYMid slice" />`
+    !options.cover &&
+    svg`<image href="${photo.href}" x="${width - panel}" width="${panel}" height="${height}" preserveAspectRatio="${fit} slice" />`
   }
   ${bar > 0 && svg`<rect width="${bar}" height="${height}" fill="${theme.accent}" />`}
   ${logo?.at(options.logoX, options.logoY)}

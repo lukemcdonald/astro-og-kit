@@ -1,20 +1,22 @@
 import type { Markup } from './svg.ts'
 
 export type OgTheme = {
-  /** Accent bar and highlights. */
-  accent: string
-  /** Canvas color behind everything. */
-  background: string
-  /** Title color. */
-  foreground: string
-  /** Secondary text (the footer). */
-  muted: string
+  /** Accent bar and highlights. Default "#c6c6bd". */
+  accent?: string
+  /** Canvas color behind everything. Default "#111111". */
+  background?: string
+  /** Title color. Default "#f4f4f4". */
+  foreground?: string
+  /** Footer and secondary text. Default "#a3a3a3". */
+  muted?: string
+  /** Color over a full-bleed photo. Default is `background`. */
+  overlay?: string
 }
 
 export type OgFont = {
-  /** Family name used in the SVG, e.g. "Inter". */
+  /** Family name used in the SVG, e.g. "Inter". Required. */
   family: string
-  /** TTF/OTF files, relative to the project root. WOFF/WOFF2 are rejected with a clear error. */
+  /** TTF/OTF files, relative to the project root. Required; resvg cannot use WOFF/WOFF2. */
   files: string[]
   /** Weight the built-in templates use for the title. Default 700. */
   weight?: number
@@ -23,32 +25,27 @@ export type OgFont = {
 /** A file path relative to the project root, a file URL, or an imported Astro image. */
 export type OgImageSource = string | URL | { fsPath?: string; src: string }
 
+/** Which edge of the photo to keep when it is cropped to fill. Default "center". */
+export type OgPhotoPosition = 'left' | 'center' | 'right' | 'top' | 'bottom'
+
+export type OgPhoto = {
+  position?: OgPhotoPosition
+  src: OgImageSource
+}
+
+/** A photo file, or `{ src, position }` to pick which edge to keep. */
+export type OgPhotoInput = OgImageSource | OgPhoto
+
 export type OgLogo = {
-  /** CSS `color` and `fill` on the wrapper so `currentColor` inherits. The file's inner `<style>` is stripped. */
+  /** CSS `color` and `fill` on the wrapper so `currentColor` inherits. Strips the file's inner `<style>`. */
   color?: string
-  /** Extra CSS inserted into the logo SVG, e.g. `.accent { fill: #e8ddc1 }`. Not scoped. */
-  css?: string
   /** SVG (recommended), PNG or JPEG. */
   src: OgImageSource
-  /** Display width in px; height follows the aspect ratio. */
+  /** Display width in px; height follows the aspect ratio. Default 96. */
   width?: number
 }
 
-export type OgBackground = {
-  /** Use only this region of the photo, in source pixels: [x, y, width, height]. */
-  crop?: [number, number, number, number]
-  /** Overlay opacity, 0–1. Default 0.7. */
-  opacity?: number
-  /** Color laid over the photo so the title stays readable. */
-  overlay?: string
-  /** Which edge of the photo to keep when it's cropped to fill. Default "center". */
-  position?: 'left' | 'center' | 'right' | 'top' | 'bottom'
-  src: OgImageSource
-}
-
 export type OgPage = {
-  /** Override the site background for this page, or `false` to drop it. */
-  background?: OgBackground | false
   /** Anything else a custom template wants. */
   data?: Record<string, unknown>
   /** Small line under the title. `false` hides the site-level footer on this page. */
@@ -59,10 +56,10 @@ export type OgPage = {
   logo?: Partial<OgLogo> | false
   /** Page URL path, e.g. "/about/". The image slug is always derived from this. */
   pathname?: string
-  /** Page photo; the editorial template shows it on the right. */
-  photo?: OgImageSource
+  /** Page photo, or `false` to hide the site photo. Split draws a right panel; cover draws it full-bleed. */
+  photo?: OgPhotoInput | false
   template?: OgTemplateOption
-  theme?: Partial<OgTheme>
+  theme?: OgTheme
   title: string
 }
 
@@ -76,13 +73,6 @@ export type OgLogoRender = {
 }
 
 export type OgTemplateContext = {
-  /** Background photo (data URI, size, crop as a viewBox), if any. */
-  background?: OgImage & {
-    opacity: number
-    overlay: string
-    position: NonNullable<OgBackground['position']>
-    viewBox: string
-  }
   font: {
     family: string
     weight: number
@@ -94,40 +84,42 @@ export type OgTemplateContext = {
   height: number
   logo?: OgLogoRender
   page: OgPage
-  /** Page photo, if any. */
-  photo?: OgImage
-  theme: OgTheme
+  /** Page or site photo, if any. */
+  photo?: OgImage & { position: OgPhotoPosition }
+  theme: Required<OgTheme>
   width: number
 }
 
 export type OgTemplate = (context: OgTemplateContext) => Markup | string
 
-export type OgTemplateName = 'backdrop' | 'editorial'
+export type OgTemplateName = 'cover' | 'split'
 
 export type OgTemplateOption = OgTemplateName | OgTemplate
 
 export type OgConfig = {
-  background?: OgBackground
   /** Reuse renders across builds. Default "node_modules/.astro-og-kit"; `false` disables. */
   cacheDir?: string | false
   /** Quantize PNGs with sharp when it's installed. Default true. Warns once if sharp cannot be loaded. */
   compress?: boolean
+  /** Family plus TTF/OTF files. Required; resvg needs a font file to draw text. */
   font: OgFont
-  /** Site-wide small line, usually the site name or domain. */
+  /** Site-wide small line, usually the site name or domain. Default none. */
   footer?: string
   logo?: OgLogo
+  /** Site photo. Pages override with `photo`; `photo: false` hides it. */
+  photo?: OgPhotoInput
   /**
    * Image route prefix. Must match where the route file lives. Default "/og".
    * Not Astro's deploy `base` (`import.meta.env.BASE_URL`); pass that to `path()` as `deployBase`.
    */
   prefix?: string
-  /** Built-in template name, a configured template, or your own function. Default "editorial". */
+  /** Built-in name, a configured template, or a function. Default "split". */
   template?: OgTemplateOption
-  theme?: Partial<OgTheme>
+  theme?: OgTheme
 }
 
 export type OgMetaInput = {
-  /** Astro deploy base. `<OgMeta>` sets this from `import.meta.env.BASE_URL`. */
+  /** Astro deploy base. `<OgMeta>` sets this from `import.meta.env.BASE_URL`. Default "/". */
   deployBase?: string
   description?: string
   /**
@@ -174,7 +166,7 @@ export type Og = {
 
 /** Props for `<OgMeta>`. Page fields are recorded by the integration and rendered to PNG. */
 export type OgMetaProps = Omit<OgMetaInput, 'site' | 'url'> &
-  Pick<OgPage, 'background' | 'data' | 'footer' | 'heading' | 'logo' | 'photo' | 'theme'> & {
+  Pick<OgPage, 'data' | 'footer' | 'heading' | 'logo' | 'photo' | 'theme'> & {
     /** `defineOg()` result. Required unless `ogKit(og)` is in astro.config. */
     og?: Og
     /** Built-in template name. Custom functions belong on `defineOg({ template })`. */

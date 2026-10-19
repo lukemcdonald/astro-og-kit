@@ -6,7 +6,7 @@ import { createRoute } from './route.ts'
 
 export type * from './types.ts'
 export { HEIGHT, WIDTH } from './render.ts'
-export { backdrop, editorial, type FrameOptions } from './templates/index.ts'
+export { cover, split, type FrameOptions } from './templates/index.ts'
 export { escapeXml, raw, svg, type Markup } from './svg.ts'
 export { fontMetrics, type FontMetrics } from './font.ts'
 export { wrapText, type WrapOptions } from './wrap.ts'

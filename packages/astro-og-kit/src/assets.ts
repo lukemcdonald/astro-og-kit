@@ -1,4 +1,4 @@
-import type { OgImageSource, OgLogo, OgLogoRender } from './types.ts'
+import type { OgImageSource, OgLogo, OgLogoRender, OgPhotoInput, OgPhotoPosition } from './types.ts'
 
 import { existsSync, readFileSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
@@ -95,6 +95,21 @@ export function readFont(path: string) {
 
 export type ImageData = { height: number; href: string; width: number }
 
+export function photoSource(
+  value: OgPhotoInput | false | undefined,
+): { position: OgPhotoPosition; src: OgImageSource } | undefined {
+  if (!value) {
+    return
+  }
+  if (typeof value === 'object' && !(value instanceof URL) && 'src' in value) {
+    if ('position' in value || typeof value.src !== 'string') {
+      return { position: value.position ?? 'center', src: value.src }
+    }
+  }
+
+  return { position: 'center', src: value }
+}
+
 /** 2× the 1200×630 canvas; templates slice-cover this box. */
 const MAX_HEIGHT = 1260
 const MAX_WIDTH = 2400
@@ -170,10 +185,7 @@ function rasterSize(bytes: Buffer): { height: number; width: number } {
   return { height: bytes.readUInt16LE(8), width: bytes.readUInt16LE(6) }
 }
 
-export async function loadLogo(
-  logo: OgLogo,
-  defaults: { color: string; width: number },
-): Promise<OgLogoRender> {
+export async function loadLogo(logo: OgLogo, defaults: { width: number }): Promise<OgLogoRender> {
   const path = resolvePath(logo.src)
   const width = logo.width ?? defaults.width
 
@@ -194,17 +206,17 @@ export async function loadLogo(
   if (!viewBox || !vbWidth || !vbHeight) {
     throw new Error(`[astro-og-kit] Logo needs a viewBox: ${path}`)
   }
-  const inner = source
-    .replace(/^[\s\S]*?<svg[^>]*>/i, '')
-    .replace(/<\/svg>\s*$/i, '')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+  let inner = source.replace(/^[\s\S]*?<svg[^>]*>/i, '').replace(/<\/svg>\s*$/i, '')
+  if (logo.color) {
+    inner = inner.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '')
+  }
   const height = (width * vbHeight) / vbWidth
-  const color = logo.color ?? defaults.color
-  const style = logo.css ? svg`<style>${raw(logo.css)}</style>` : ''
 
   return {
     at: (x, y) =>
-      svg`<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="${viewBox}" color="${color}" fill="${color}">${style}${raw(inner)}</svg>`,
+      logo.color
+        ? svg`<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="${viewBox}" color="${logo.color}" fill="${logo.color}">${raw(inner)}</svg>`
+        : svg`<svg x="${x}" y="${y}" width="${width}" height="${height}" viewBox="${viewBox}">${raw(inner)}</svg>`,
     height,
     width,
   }
