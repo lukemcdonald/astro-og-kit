@@ -3,7 +3,7 @@ import type { OgConfig, OgMetaInput, OgMetaTag, OgPage, OgRoute } from './types.
 import { HEIGHT, WIDTH, renderPng } from './render.ts'
 
 /** `/docs/` → `/docs`, `/` stays `/`. */
-export function normalizeBase(base: string): string {
+function normalizeBase(base: string): string {
   const trimmed = base.replace(/^\/+|\/+$/g, '')
   if (trimmed === '') {
     return '/'
@@ -25,7 +25,7 @@ function joinUrl(...segments: string[]): string {
 }
 
 /** Drop Astro's deploy base from a page pathname so the slug does not include it. */
-export function stripDeployBase(pathname: string, deployBase: string): string {
+function stripDeployBase(pathname: string, deployBase: string): string {
   const base = normalizeBase(deployBase)
   const path = pathname.startsWith('/') ? pathname : `/${pathname}`
   if (base === '/') {
@@ -41,7 +41,7 @@ export function stripDeployBase(pathname: string, deployBase: string): string {
   return path
 }
 
-export function slugFor(pathname: string): string {
+function slugFor(pathname: string): string {
   const trimmed = pathname.replace(/\.html$/, '').replace(/^\/+|\/+$/g, '')
   if (trimmed === '') {
     return 'index'
@@ -57,10 +57,9 @@ export function slugFor(pathname: string): string {
  */
 export function imagePath(pathname: string, prefix = '/og', deployBase = '/'): string {
   const deploy = normalizeBase(deployBase)
-  const route = normalizeBase(prefix)
   const slug = slugFor(stripDeployBase(pathname, deploy))
 
-  return joinUrl(deploy, route, `${slug}.png`)
+  return joinUrl(deploy, prefix, `${slug}.png`)
 }
 
 export function createMeta(path: (pathname: string, deployBase?: string) => string) {

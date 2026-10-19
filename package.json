@@ -13,7 +13,7 @@
     "format": "prettier --write .",
     "lint": "prettier --check . && npm run check",
     "examples": "npm run build && npm run build -w example-backdrop -w example-editorial -w example-custom",
-    "verify": "npm run lint"
+    "verify": "npm run lint && npm test"
   },
   "devDependencies": {
     "prettier": "^3.6.2",

@@ -22,7 +22,7 @@ export { wrapText, type WrapOptions } from './wrap.ts'
  */
 export function defineOg(config: OgConfig): Og {
   const prefix = config.prefix ?? '/og'
-  const path = (pathname: string, deployBase = '/') => imagePath(pathname, prefix, deployBase ?? '/')
+  const path = (pathname: string, deployBase = '/') => imagePath(pathname, prefix, deployBase)
 
   return {
     config,
