@@ -7,9 +7,8 @@ import { fileURLToPath } from 'node:url'
 
 import { build, dev } from 'astro'
 
-import { pageUrl, pngSlug } from '../src/integration.ts'
 import { defineOg } from '../src/index.ts'
-import { encodeRecord, extractRecords, isImageUrlOverride } from '../src/page-path.ts'
+import { encodeRecord, extractRecords, isImageUrlOverride, pageUrl, pngSlug } from '../src/page-path.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const fixture = join(root, 'test/fixture')

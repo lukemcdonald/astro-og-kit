@@ -114,6 +114,39 @@ export function imagePath(pathname: string, prefix = '/og', deployBase = '/'): s
   return joinUrl(deploy, prefix, `${slug}.png`)
 }
 
+export function pngSlug(pathname: string, prefix = '/og', base = '/'): string | undefined {
+  const path = stripDeployBase(pathname.split('?')[0] ?? '', base)
+  const pre = prefix === '/' ? '' : `/${prefix.replace(/^\/+|\/+$/g, '')}`
+  if (!path.endsWith('.png') || (pre && path !== `${pre}.png` && !path.startsWith(`${pre}/`))) {
+    return
+  }
+  const slug = path.slice(pre.length).replace(/^\//, '').slice(0, -4)
+  if (slug) {
+    return slug
+  }
+}
+
+function pageFromSlug(slug: string, options?: PagePathOptions): string {
+  return pagePath(slug === 'index' ? '/' : `/${slug}`, options)
+}
+
+export function pageUrl(
+  host: string,
+  base: string,
+  slug: string,
+  options: PagePathOptions = {},
+  tls = false,
+): string {
+  const protocol = tls ? 'https' : 'http'
+  const root = base.replace(/\/+$/, '')
+  const path = pageFromSlug(slug, options)
+  if (path === '/') {
+    return `${protocol}://${host}${root && options.trailingSlash === 'never' ? root : `${root}/`}`
+  }
+
+  return `${protocol}://${host}${root}${path}`
+}
+
 export function createMeta(path: (pathname: string, deployBase?: string) => string) {
   return (input: OgMetaInput): OgMetaTag[] => {
     const { deployBase, description, image, imageAlt, site, siteName, title, type = 'website', url } = input
