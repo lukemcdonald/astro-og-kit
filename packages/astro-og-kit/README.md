@@ -134,7 +134,8 @@ export const og = defineOg({
 | `compress`   | Shrink PNGs with sharp when installed. Default `true`.      |
 | `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns it off. |
 
-Per page: `title`, `pathname`, `image`, `background`, `footer`, `template`, `theme`, `data`.
+Per page: `title`, `pathname`, `image`, `background`, `footer`, `logo`, `template`, `theme`, `data`.
+`logo: false` hides the site logo; an object is merged over it.
 `WIDTH` and `HEIGHT` (`1200`, `630`) are exported for custom templates. A logo file's inner
 `<style>` is stripped; color comes from `logo.color` / `currentColor`.
 

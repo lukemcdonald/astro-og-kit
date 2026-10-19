@@ -55,6 +55,8 @@ export type OgPage = {
   footer?: string | false
   /** Page photo; the editorial template shows it on the right. */
   image?: OgImageSource
+  /** Override the site logo for this page, or `false` to hide it. */
+  logo?: Partial<OgLogo> | false
   /** Page URL path, e.g. "/about/". The image slug is always derived from this. */
   pathname?: string
   template?: OgTemplateOption

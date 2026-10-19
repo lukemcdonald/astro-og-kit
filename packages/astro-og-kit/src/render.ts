@@ -42,6 +42,7 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
   const theme = { ...DEFAULT_THEME, ...config.theme, ...page.theme }
   const background = page.background === false ? undefined : (page.background ?? config.background)
   const footer = page.footer === false ? '' : (page.footer ?? config.footer ?? '')
+  const logo = page.logo === false ? undefined : { ...config.logo, ...page.logo }
 
   const backgroundImage = background && (await loadImage(background.src))
   const fontFile = config.font.files[0]
@@ -67,7 +68,9 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
     footer,
     height: HEIGHT,
     image: page.image ? await loadImage(page.image) : undefined,
-    logo: config.logo && (await loadLogo(config.logo, { color: theme.foreground, width: 96 })),
+    logo: logo?.src
+      ? await loadLogo({ ...logo, src: logo.src }, { color: theme.foreground, width: 96 })
+      : undefined,
     page,
     theme,
     width: WIDTH,

@@ -184,6 +184,39 @@ test('titleLineHeight spaces wrapped title lines', async () => {
   assert.equal(ys[1]! - ys[0]!, 100)
 })
 
+test('page logo can hide, recolor, or swap src', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-page-logo-'))
+  const siteLogo = join(dir, 'site.svg')
+  const pageLogo = join(dir, 'page.svg')
+  writeFileSync(
+    siteLogo,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path id="site-mark" fill="currentColor" d="M0 0h10v10H0z"/></svg>`,
+  )
+  writeFileSync(
+    pageLogo,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path id="page-mark" fill="currentColor" d="M0 0h10v10H0z"/></svg>`,
+  )
+  const og = defineOg({
+    cacheDir: false,
+    font: { family: 'Inter', files: [font] },
+    logo: { color: '#111111', src: siteLogo, width: 40 },
+    theme: { foreground: '#123456' },
+  })
+
+  const hidden = await og.svg({ logo: false, title: 'Hello' })
+  assert.doesNotMatch(hidden, /id="site-mark"/)
+
+  const recolored = await og.svg({ logo: { color: '#abcdef' }, title: 'Hello' })
+  assert.match(recolored, /id="site-mark"/)
+  assert.match(recolored, /color="#abcdef"/)
+  assert.match(recolored, /fill="#abcdef"/)
+
+  const swapped = await og.svg({ logo: { src: pageLogo }, title: 'Hello' })
+  assert.match(swapped, /id="page-mark"/)
+  assert.doesNotMatch(swapped, /id="site-mark"/)
+  assert.match(swapped, /color="#111111"/)
+})
+
 test('logo currentColor inherits wrapper color and inner style is stripped', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-logo-'))
   const logoSvg = join(dir, 'mark.svg')
