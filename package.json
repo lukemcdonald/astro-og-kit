@@ -1,0 +1,21 @@
+{
+  "name": "astro-og-kit-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w astro-og-kit",
+    "check": "npm run check -w astro-og-kit",
+    "test": "npm test -w astro-og-kit",
+    "format": "prettier --write .",
+    "lint": "prettier --check . && npm run check",
+    "examples": "npm run build && npm run build -w example-backdrop -w example-editorial -w example-custom"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "prettier-plugin-astro": "^0.14.1"
+  }
+}

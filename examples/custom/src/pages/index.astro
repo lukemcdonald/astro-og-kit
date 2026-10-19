@@ -1,0 +1,16 @@
+---
+import OgMeta from 'astro-og-kit/OgMeta.astro'
+import { og } from '../og'
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>astro-og-kit custom template</title>
+    <OgMeta og={og} title="Custom templates are just functions" />
+  </head>
+  <body>
+    <h1>astro-og-kit custom template</h1>
+    <img src={og.path(Astro.url.pathname)} width="600" alt="" />
+  </body>
+</html>
