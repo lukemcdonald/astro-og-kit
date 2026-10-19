@@ -1,6 +1,4 @@
 name: CI
-# workflow_dispatch: GITHUB_TOKEN version-PR pushes do not start workflows.
-# release.yml dispatches this onto changeset-release/* so the required `check` reports.
 on:
   pull_request:
   push:
@@ -21,8 +19,4 @@ jobs:
         if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'changeset-release/')
         run: |
           git fetch --no-tags origin ${{ github.base_ref }}
-          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -q '^packages/astro-og-kit/src/'; then
-            npx changeset status --since="origin/${{ github.base_ref }}"
-          else
-            echo "No packages/astro-og-kit/src changes; changeset not required."
-          fi
+          npx changeset status --since="origin/${{ github.base_ref }}"

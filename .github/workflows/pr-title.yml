@@ -1,9 +1,5 @@
-# Validates PR titles as Conventional Commits. The repo is squash-merge only,
-# so the title becomes the commit on main.
-#
-# pull_request (not pull_request_target): this is a single-maintainer repo,
-# so fork PRs are not the workflow. pull_request uses this branch's workflow
-# (needed for this PR) and does not run untrusted base-ref code.
+# Squash-merge uses the PR title. pull_request (not pull_request_target) so this
+# branch's workflow runs and we do not execute base-ref code.
 name: PR title
 on:
   pull_request:

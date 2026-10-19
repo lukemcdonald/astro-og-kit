@@ -1,6 +1,4 @@
-# Version Packages PR on push to main; publish 0.x to the `next` dist-tag via
-# npm trusted publishing (OIDC). No NPM_TOKEN. Workflow filename must stay
-# release.yml so it matches the trusted publisher on npmjs.com.
+# Filename must stay release.yml (npm trusted publisher).
 name: Release
 on:
   push:
@@ -15,6 +13,7 @@ permissions:
   pull-requests: write
 jobs:
   release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,14 +21,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          package-manager-cache: false
           registry-url: https://registry.npmjs.org
-      - run: npm install -g npm@latest && npm --version
+      - run: npm install -g npm@^11.5.1 && npm --version
       - run: npm ci
       - run: npm run lint
       - run: npm test
       - run: npm run build
-      - uses: changesets/action@v2
+      - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         id: changesets
         with:
           commit-message: 'chore: version packages'
