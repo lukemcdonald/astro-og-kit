@@ -95,14 +95,15 @@ export function readFont(path: string) {
 
 export type ImageData = { height: number; href: string; width: number }
 
-export type ImageFit = { maxHeight: number; maxWidth: number }
+/** 2× the 1200×630 canvas; templates slice-cover this box. */
+const MAX_HEIGHT = 1260
+const MAX_WIDTH = 2400
 
 /** Read an image as a data URI resvg can draw (PNG, JPEG, GIF; WebP/AVIF via sharp). */
-export function loadImage(source: OgImageSource, fit?: ImageFit): Promise<ImageData> {
+export function loadImage(source: OgImageSource): Promise<ImageData> {
   const path = resolvePath(source)
-  const fitKey = fit ? `${fit.maxHeight}x${fit.maxWidth}` : ''
 
-  return cached(`uri:${path}:${fitKey}`, async () => {
+  return cached(`uri:${path}`, async () => {
     let bytes = read(path)
     let mime = sniff(bytes)
     if (mime === 'image/webp' || mime === 'image/avif') {
@@ -120,13 +121,13 @@ export function loadImage(source: OgImageSource, fit?: ImageFit): Promise<ImageD
     }
 
     const size = rasterSize(bytes)
-    if (fit && (size.height > fit.maxHeight || size.width > fit.maxWidth)) {
+    if (size.height > MAX_HEIGHT && size.width > MAX_WIDTH) {
       const sharp = loadSharp()
       if (sharp) {
         const resized = sharp(bytes).resize({
-          fit: 'inside',
-          height: fit.maxHeight,
-          width: fit.maxWidth,
+          fit: 'outside',
+          height: MAX_HEIGHT,
+          width: MAX_WIDTH,
           withoutEnlargement: true,
         })
         if (mime === 'image/jpeg') {

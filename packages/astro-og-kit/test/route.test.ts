@@ -176,22 +176,20 @@ test('meta honors base paths and url override', () => {
   assert.equal(tag(baseHome, 'og:image'), 'https://origin/docs/og/index.png')
 
   const override = meta({
-    canonical: '/contact',
     site: 'https://example.com',
     title: 'About',
-    url: 'https://example.com/about/x.html',
+    url: '/contact',
   })
   assert.equal(tag(override, 'og:url'), 'https://example.com/contact')
-  assert.equal(tag(override, 'og:image'), 'https://example.com/og/about/x.png')
+  assert.equal(tag(override, 'og:image'), 'https://example.com/og/contact.png')
 
   const absolute = meta({
-    canonical: new URL('https://cdn.example/canonical'),
     site: 'https://example.com',
     title: 'About',
-    url: '/about/',
+    url: new URL('https://example.com/about/x.html'),
   })
-  assert.equal(tag(absolute, 'og:url'), 'https://cdn.example/canonical')
-  assert.equal(tag(absolute, 'og:image'), 'https://example.com/og/about.png')
+  assert.equal(tag(absolute, 'og:url'), 'https://example.com/about/x')
+  assert.equal(tag(absolute, 'og:image'), 'https://example.com/og/about/x.png')
 })
 
 test('route() lists paths and rejects GET without title', async () => {

@@ -210,10 +210,18 @@ test('logo currentColor inherits wrapper color and inner style is stripped', asy
   assert.match(markup, /fill="#123456"[^>]*>[\s\S]*Hello/)
 })
 
-test('sharp downscales large photos and never upscales small ones', async () => {
+async function embeddedSize(markup: string) {
+  const href = markup.match(/href="data:image\/png;base64,([^"]+)"/)?.[1]
+  assert.ok(href)
+  return sharp(Buffer.from(href, 'base64')).metadata()
+}
+
+test('sharp downscales large photos to cover the canvas and never upscales', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-photo-'))
   const large = join(dir, 'large.png')
   const small = join(dir, 'small.png')
+  const wide = join(dir, 'wide.png')
+  const portrait = join(dir, 'portrait.png')
   await sharp({
     create: { background: '#336699', channels: 3, height: 3000, width: 4000 },
   })
@@ -224,20 +232,29 @@ test('sharp downscales large photos and never upscales small ones', async () => 
   })
     .png()
     .toFile(small)
+  await sharp({
+    create: { background: '#669933', channels: 3, height: 1500, width: 4000 },
+  })
+    .png()
+    .toFile(wide)
+  await sharp({
+    create: { background: '#996633', channels: 3, height: 4000, width: 2000 },
+  })
+    .png()
+    .toFile(portrait)
 
   const og = defineOg({
-    cacheDir: dir,
+    cacheDir: false,
     compress: false,
     font: { family: 'Inter', files: [font] },
     template: 'editorial',
   })
-  const largeSvg = await og.svg({ image: large, title: 'Large' })
-  const largeHref = largeSvg.match(/href="data:image\/png;base64,([^"]+)"/)?.[1]
-  assert.ok(largeHref)
-  const largeMeta = await sharp(Buffer.from(largeHref, 'base64')).metadata()
-  assert.ok((largeMeta.width ?? 0) <= 1040, `width ${largeMeta.width}`)
-  assert.ok((largeMeta.height ?? 0) <= 1260, `height ${largeMeta.height}`)
-  assert.ok((largeMeta.width ?? 0) < 4000)
+  const largeMeta = await embeddedSize(await og.svg({ image: large, title: 'Large' }))
+  assert.equal(largeMeta.width, 2400)
+  assert.equal(largeMeta.height, 1800)
+
+  const wideMeta = await embeddedSize(await og.svg({ image: wide, title: 'Wide' }))
+  assert.ok((wideMeta.height ?? 0) >= 630, `wide height ${wideMeta.height}`)
 
   const backdrop = defineOg({
     background: { src: large },
@@ -246,18 +263,21 @@ test('sharp downscales large photos and never upscales small ones', async () => 
     font: { family: 'Inter', files: [font] },
     template: 'backdrop',
   })
-  const backdropSvg = await backdrop.svg({ title: 'Back' })
-  assert.match(backdropSvg, /width="1680" height="1260"/)
+  assert.match(await backdrop.svg({ title: 'Back' }), /width="2400" height="1800"/)
 
-  const smallOg = defineOg({
+  const portraitOg = defineOg({
+    background: { src: portrait },
     cacheDir: false,
     compress: false,
     font: { family: 'Inter', files: [font] },
+    template: 'backdrop',
   })
-  const smallSvg = await smallOg.svg({ image: small, title: 'Small' })
-  const smallHref = smallSvg.match(/href="data:image\/png;base64,([^"]+)"/)?.[1]
-  assert.ok(smallHref)
-  const smallMeta = await sharp(Buffer.from(smallHref, 'base64')).metadata()
+  const portraitMeta = await embeddedSize(await portraitOg.svg({ title: 'Portrait' }))
+  assert.ok((portraitMeta.width ?? 0) >= 1200, `portrait width ${portraitMeta.width}`)
+  assert.equal(portraitMeta.width, 2000)
+  assert.equal(portraitMeta.height, 4000)
+
+  const smallMeta = await embeddedSize(await og.svg({ image: small, title: 'Small' }))
   assert.equal(smallMeta.width, 50)
   assert.equal(smallMeta.height, 40)
 })

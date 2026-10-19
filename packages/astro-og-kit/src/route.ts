@@ -117,7 +117,6 @@ export function createMeta(path: (pathname: string, deployBase?: string) => stri
   return (input: OgMetaInput): OgMetaTag[] => {
     const {
       buildFormat,
-      canonical,
       deployBase,
       description,
       image,
@@ -131,11 +130,7 @@ export function createMeta(path: (pathname: string, deployBase?: string) => stri
     } = input
     const pageUrl = new URL(url, site)
     const route = pagePath(pageUrl.pathname, { buildFormat, trailingSlash })
-    const ogUrl = canonical
-      ? new URL(canonical, site ?? pageUrl).toString()
-      : site
-        ? new URL(route, site).toString()
-        : undefined
+    const ogUrl = site ? new URL(route, site).toString() : undefined
     const imageUrl = new URL(image ?? path(route, deployBase), site ?? pageUrl).toString()
     const tags: [string, string | undefined, 'name' | 'property'][] = [
       ['og:title', title, 'property'],

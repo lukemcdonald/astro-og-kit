@@ -11,8 +11,6 @@ import { templates } from './templates/index.ts'
 
 export const HEIGHT = 630
 export const WIDTH = 1200
-/** Default editorial photo panel width; downscale cap is 2× this. */
-const PHOTO_WIDTH = 520
 
 const VERSION = '1'
 
@@ -45,8 +43,7 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
   const background = page.background === false ? undefined : (page.background ?? config.background)
   const footer = page.footer === false ? '' : (page.footer ?? config.footer ?? '')
 
-  const backgroundImage =
-    background && (await loadImage(background.src, { maxHeight: HEIGHT * 2, maxWidth: WIDTH * 2 }))
+  const backgroundImage = background && (await loadImage(background.src))
   const fontFile = config.font.files[0]
   if (!fontFile) {
     throw new Error('[astro-og-kit] font.files must include a TTF or OTF file.')
@@ -69,9 +66,7 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
     },
     footer,
     height: HEIGHT,
-    image: page.image
-      ? await loadImage(page.image, { maxHeight: HEIGHT * 2, maxWidth: PHOTO_WIDTH * 2 })
-      : undefined,
+    image: page.image ? await loadImage(page.image) : undefined,
     logo: config.logo && (await loadLogo(config.logo, { color: theme.foreground, width: 96 })),
     page,
     theme,

@@ -24,9 +24,9 @@ export type OgFont = {
 export type OgImageSource = string | URL | { fsPath?: string; src: string }
 
 export type OgLogo = {
-  /** CSS `color` and `fill` on the logo wrapper, so `currentColor` paths inherit it. */
+  /** CSS `color` and `fill` on the wrapper so `currentColor` inherits. The file's inner `<style>` is stripped. */
   color?: string
-  /** Extra CSS scoped to the logo, e.g. `.accent { fill: #e8ddc1 }`. */
+  /** Extra CSS inserted into the logo SVG, e.g. `.accent { fill: #e8ddc1 }`. Not scoped. */
   css?: string
   /** SVG (recommended), PNG or JPEG. */
   src: OgImageSource
@@ -125,11 +125,6 @@ export type OgConfig = {
 export type OgMetaInput = {
   /** Astro `build.format`. `<OgMeta>` sets this from `astro:config`. */
   buildFormat?: 'directory' | 'file' | 'preserve'
-  /**
-   * Override og:url. Relative values resolve against `site`.
-   * `<OgMeta url>` sets this. Does not change og:image.
-   */
-  canonical?: URL | string
   /** Astro deploy base. `<OgMeta>` sets this from `import.meta.env.BASE_URL`. */
   deployBase?: string
   description?: string
@@ -147,7 +142,7 @@ export type OgMetaInput = {
   trailingSlash?: 'always' | 'ignore' | 'never'
   /** og:type. Default "website". */
   type?: string
-  /** Page URL or path, e.g. `Astro.url`. Used for og:image and the default og:url. */
+  /** Page URL or path, e.g. `Astro.url`. Used for og:url and og:image. */
   url: URL | string
 }
 

@@ -46,8 +46,8 @@ import { og } from '../og'
 ```
 
 Set `site` in `astro.config` so image URLs are absolute. Pass the imported image object into
-`image`, not `.src`. Optional `url` (string or URL) overrides `og:url`; relative values use
-`Astro.site`.
+`image`, not `.src`. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`;
+relative values use `Astro.site`. Defaults to `Astro.url`.
 
 ## Templates
 
@@ -135,7 +135,8 @@ export const og = defineOg({
 | `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns it off. |
 
 Per page: `title`, `pathname`, `image`, `background`, `footer`, `template`, `theme`, `data`.
-`WIDTH` and `HEIGHT` (`1200`, `630`) are exported for custom templates.
+`WIDTH` and `HEIGHT` (`1200`, `630`) are exported for custom templates. A logo file's inner
+`<style>` is stripped; color comes from `logo.color` / `currentColor`.
 
 ## More
 
