@@ -281,11 +281,11 @@ test('sharp downscales large photos to cover the canvas and never upscales', asy
     font: { family: 'Inter', files: [font] },
     template: 'editorial',
   })
-  const largeMeta = await embeddedSize(await og.svg({ image: large, title: 'Large' }))
+  const largeMeta = await embeddedSize(await og.svg({ photo: large, title: 'Large' }))
   assert.equal(largeMeta.width, 2400)
   assert.equal(largeMeta.height, 1800)
 
-  const wideMeta = await embeddedSize(await og.svg({ image: wide, title: 'Wide' }))
+  const wideMeta = await embeddedSize(await og.svg({ photo: wide, title: 'Wide' }))
   assert.ok((wideMeta.height ?? 0) >= 630, `wide height ${wideMeta.height}`)
 
   const backdrop = defineOg({
@@ -309,7 +309,7 @@ test('sharp downscales large photos to cover the canvas and never upscales', asy
   assert.equal(portraitMeta.width, 2000)
   assert.equal(portraitMeta.height, 4000)
 
-  const smallMeta = await embeddedSize(await og.svg({ image: small, title: 'Small' }))
+  const smallMeta = await embeddedSize(await og.svg({ photo: small, title: 'Small' }))
   assert.equal(smallMeta.width, 50)
   assert.equal(smallMeta.height, 40)
 })
@@ -333,14 +333,27 @@ test('cache key follows whether compression ran', async () => {
   assert.ok(packed.length < raw.length)
 })
 
+test('heading is drawn instead of title', async () => {
+  const og = defineOg({
+    cacheDir: false,
+    font: { family: 'Inter', files: [font] },
+  })
+  const markup = await og.svg({
+    heading: 'Luke McDonald',
+    title: 'Luke McDonald | Christian, Husband, Father and Wrestling Coach',
+  })
+  assert.match(markup, />Luke McDonald</)
+  assert.doesNotMatch(markup, /Wrestling Coach/)
+})
+
 test('tells you to pass the imported image object, not .src', async () => {
   const og = defineOg({ cacheDir: false, font: { family: 'Inter', files: [font] } })
   await assert.rejects(
-    () => og.render({ image: '/_astro/hero.hash.jpg', title: 'Hero' }),
+    () => og.render({ photo: '/_astro/hero.hash.jpg', title: 'Hero' }),
     /Pass the imported image object, not \.src/,
   )
   await assert.rejects(
-    () => og.render({ image: { src: '/_astro/hero.hash.jpg' }, title: 'Hero' }),
+    () => og.render({ photo: { src: '/_astro/hero.hash.jpg' }, title: 'Hero' }),
     /Pass the imported image object, not \.src/,
   )
 })

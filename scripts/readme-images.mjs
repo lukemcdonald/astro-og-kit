@@ -73,7 +73,7 @@ await write(
     logo,
     theme,
   },
-  { image: photo, title: 'Hello, world' },
+  { photo, title: 'Hello, world' },
 )
 await write(
   'backdrop.png',

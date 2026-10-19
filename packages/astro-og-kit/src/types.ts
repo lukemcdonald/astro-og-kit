@@ -53,12 +53,14 @@ export type OgPage = {
   data?: Record<string, unknown>
   /** Small line under the title. `false` hides the site-level footer on this page. */
   footer?: string | false
-  /** Page photo; the editorial template shows it on the right. */
-  image?: OgImageSource
+  /** Text drawn on the image. Defaults to `title`. */
+  heading?: string
   /** Override the site logo for this page, or `false` to hide it. */
   logo?: Partial<OgLogo> | false
   /** Page URL path, e.g. "/about/". The image slug is always derived from this. */
   pathname?: string
+  /** Page photo; the editorial template shows it on the right. */
+  photo?: OgImageSource
   template?: OgTemplateOption
   theme?: Partial<OgTheme>
   title: string
@@ -90,10 +92,10 @@ export type OgTemplateContext = {
   /** Resolved site footer (or page override); empty when hidden. */
   footer: string
   height: number
-  /** Page photo, if any. */
-  image?: OgImage
   logo?: OgLogoRender
   page: OgPage
+  /** Page photo, if any. */
+  photo?: OgImage
   theme: OgTheme
   width: number
 }
@@ -129,8 +131,9 @@ export type OgMetaInput = {
   deployBase?: string
   description?: string
   /**
-   * Override the generated og:image URL. When set, width/height tags are omitted.
-   * Leave unset and let `meta()` / `<OgMeta>` generate the URL.
+   * Override og:image. Absolute URL, or a path resolved against `site`
+   * (root-relative from the origin; relative paths include `deployBase`).
+   * When set, width/height tags are omitted and no PNG is generated.
    */
   image?: string
   imageAlt?: string
@@ -170,8 +173,8 @@ export type Og = {
 }
 
 /** Props for `<OgMeta>`. Page fields are recorded by the integration and rendered to PNG. */
-export type OgMetaProps = Omit<OgMetaInput, 'image' | 'site' | 'url'> &
-  Pick<OgPage, 'background' | 'data' | 'footer' | 'image' | 'logo' | 'theme'> & {
+export type OgMetaProps = Omit<OgMetaInput, 'site' | 'url'> &
+  Pick<OgPage, 'background' | 'data' | 'footer' | 'heading' | 'logo' | 'photo' | 'theme'> & {
     /** `defineOg()` result. Required unless `ogKit(og)` is in astro.config. */
     og?: Og
     /** Built-in template name. Custom functions belong on `defineOg({ template })`. */

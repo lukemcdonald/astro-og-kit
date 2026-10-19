@@ -67,11 +67,11 @@ export async function buildContext(config: OgConfig, page: OgPage): Promise<OgTe
     },
     footer,
     height: HEIGHT,
-    image: page.image ? await loadImage(page.image) : undefined,
     logo: logo?.src
       ? await loadLogo({ ...logo, src: logo.src }, { color: theme.foreground, width: 96 })
       : undefined,
-    page,
+    page: { ...page, title: page.heading ?? page.title },
+    photo: page.photo ? await loadImage(page.photo) : undefined,
     theme,
     width: WIDTH,
   }
