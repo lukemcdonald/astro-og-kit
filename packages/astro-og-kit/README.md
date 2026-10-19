@@ -83,7 +83,8 @@ passed and the file is not on disk, the kit throws that sentence.
 - Pass the page path **without** the Astro deploy `base`. `/about/` → `/og/about.png`.
 - If `pathname` includes `import.meta.env.BASE_URL`, that prefix is stripped so it is not duplicated
   in the slug, then prefixed on the result. With `base: '/docs'` in `astro.config`, `/about/` and
-  `/docs/about/` both become `/docs/og/about.png`. `<OgMeta>` does this for you.
+  `/docs/about/` both become `/docs/og/about.png`. `<OgMeta>` passes `deployBase` so generated tags
+  keep `og:image:width` / `og:image:height`.
 - `defineOg({ base })` is the **image route** (`/og` by default), not Astro's deploy `base`. Match
   it to where the route file lives.
 

@@ -38,7 +38,8 @@ test('path and meta honor Astro base', () => {
   assert.equal(og.path('/docs/about/', '/docs'), '/docs/og/about.png')
   assert.equal(og.path('/', '/docs'), '/docs/og/index.png')
 
-  const tags = createMeta((pathname) => imagePath(pathname, '/og', '/docs'))({
+  const tags = createMeta((pathname, deployBase) => imagePath(pathname, '/og', deployBase ?? '/'))({
+    deployBase: '/docs',
     site: 'https://origin',
     title: 'About',
     url: 'https://origin/docs/about/',
@@ -48,6 +49,8 @@ test('path and meta honor Astro base', () => {
       (t) => 'property' in t && t.property === 'og:image' && t.content === 'https://origin/docs/og/about.png',
     ),
   )
+  assert.ok(tags.some((t) => 'property' in t && t.property === 'og:image:width' && t.content === '1200'))
+  assert.ok(tags.some((t) => 'property' in t && t.property === 'og:image:height' && t.content === '630'))
 })
 
 test('route() prerenders and rejects GET without title', async () => {

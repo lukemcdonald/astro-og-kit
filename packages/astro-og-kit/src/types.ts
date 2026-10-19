@@ -124,6 +124,8 @@ export type OgConfig = {
 
 export type OgMetaInput = {
   description?: string
+  /** Astro deploy base. `<OgMeta>` sets this from `import.meta.env.BASE_URL`. */
+  deployBase?: string
   /** Use a specific image URL instead of the generated one. */
   image?: string
   imageAlt?: string

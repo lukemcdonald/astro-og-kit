@@ -63,11 +63,11 @@ export function imagePath(pathname: string, prefix = '/og', deployBase = astroBa
   return `${root}${route}/${slug}.png`
 }
 
-export function createMeta(path: (pathname: string) => string) {
+export function createMeta(path: (pathname: string, deployBase?: string) => string) {
   return (input: OgMetaInput): OgMetaTag[] => {
-    const { description, image, imageAlt, site, siteName, title, type = 'website', url } = input
+    const { deployBase, description, image, imageAlt, site, siteName, title, type = 'website', url } = input
     const pageUrl = new URL(url, site)
-    const imageUrl = new URL(image ?? path(pageUrl.pathname), site ?? pageUrl).toString()
+    const imageUrl = new URL(image ?? path(pageUrl.pathname, deployBase), site ?? pageUrl).toString()
     const tags: [string, string | undefined, 'name' | 'property'][] = [
       ['og:title', title, 'property'],
       ['og:description', description, 'property'],
