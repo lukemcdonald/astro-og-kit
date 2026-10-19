@@ -1,5 +1,6 @@
 import type { OgConfig, OgMetaInput, OgMetaTag, OgPage, OgRoute } from './types.ts'
 
+import { pagePath } from './page-path.ts'
 import { HEIGHT, WIDTH, renderPng } from './render.ts'
 
 /** `/docs/` → `/docs`, `/` stays `/`. */
@@ -57,7 +58,7 @@ function slugFor(pathname: string): string {
  */
 export function imagePath(pathname: string, prefix = '/og', deployBase = '/'): string {
   const deploy = normalizeBase(deployBase)
-  const slug = slugFor(stripDeployBase(pathname, deploy))
+  const slug = slugFor(stripDeployBase(pagePath(pathname), deploy))
 
   return joinUrl(deploy, prefix, `${slug}.png`)
 }
@@ -66,12 +67,14 @@ export function createMeta(path: (pathname: string, deployBase?: string) => stri
   return (input: OgMetaInput): OgMetaTag[] => {
     const { deployBase, description, image, imageAlt, site, siteName, title, type = 'website', url } = input
     const pageUrl = new URL(url, site)
-    const imageUrl = new URL(image ?? path(pageUrl.pathname, deployBase), site ?? pageUrl).toString()
+    const route = pagePath(pageUrl.pathname)
+    const ogUrl = site ? new URL(route, site).toString() : undefined
+    const imageUrl = new URL(image ?? path(route, deployBase), site ?? pageUrl).toString()
     const tags: [string, string | undefined, 'name' | 'property'][] = [
       ['og:title', title, 'property'],
       ['og:description', description, 'property'],
       ['og:type', type, 'property'],
-      ['og:url', site ? pageUrl.toString() : undefined, 'property'],
+      ['og:url', ogUrl, 'property'],
       ['og:site_name', siteName, 'property'],
       ['og:image', imageUrl, 'property'],
       ['og:image:width', image ? undefined : String(WIDTH), 'property'],

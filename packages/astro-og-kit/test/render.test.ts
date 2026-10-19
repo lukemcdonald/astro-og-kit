@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url'
 
 import sharp from 'sharp'
 
-import { defineOg, fontMetrics, svg, wrapText } from '../src/index.ts'
+import { loadResvg } from '../src/native.ts'
+import { defineOg, editorial, fontMetrics, svg, wrapText } from '../src/index.ts'
 
 const font = fileURLToPath(
   new URL('../../../examples/editorial/src/assets/Inter-SemiBold.ttf', import.meta.url),
@@ -16,6 +17,11 @@ const merriweather = fileURLToPath(
   new URL('../../../examples/backdrop/src/assets/Merriweather-Bold.ttf', import.meta.url),
 )
 const logo = fileURLToPath(new URL('../../../examples/editorial/public/logo.svg', import.meta.url))
+
+test('loadResvg uses createRequire from the package', () => {
+  const { Resvg } = loadResvg()
+  assert.equal(typeof Resvg, 'function')
+})
 
 test('svg escapes values but keeps nested markup', () => {
   const inner = svg`<b>${'<i>'}</b>`
@@ -164,6 +170,167 @@ test('page footer: false hides the site footer', async () => {
   assert.match(shown, />example.com</)
   const hidden = await og.svg({ footer: false, title: 'Hello' })
   assert.doesNotMatch(hidden, /example.com/)
+})
+
+test('titleLineHeight spaces wrapped title lines', async () => {
+  const og = defineOg({
+    cacheDir: false,
+    font: { family: 'Inter', files: [font] },
+    template: editorial({ titleLineHeight: 2, titleMaxWidth: 200, titleSize: 50 }),
+  })
+  const markup = await og.svg({ title: 'One Two Three Four' })
+  const ys = [...markup.matchAll(/<tspan x="96" y="(\d+(?:\.\d+)?)"/g)].map((match) => Number(match[1]))
+  assert.ok(ys.length >= 2, markup)
+  assert.equal(ys[1]! - ys[0]!, 100)
+})
+
+test('page logo can hide, recolor, or swap src', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-page-logo-'))
+  const siteLogo = join(dir, 'site.svg')
+  const pageLogo = join(dir, 'page.svg')
+  writeFileSync(
+    siteLogo,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path id="site-mark" fill="currentColor" d="M0 0h10v10H0z"/></svg>`,
+  )
+  writeFileSync(
+    pageLogo,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path id="page-mark" fill="currentColor" d="M0 0h10v10H0z"/></svg>`,
+  )
+  const og = defineOg({
+    cacheDir: false,
+    font: { family: 'Inter', files: [font] },
+    logo: { color: '#111111', src: siteLogo, width: 40 },
+    theme: { foreground: '#123456' },
+  })
+
+  const hidden = await og.svg({ logo: false, title: 'Hello' })
+  assert.doesNotMatch(hidden, /id="site-mark"/)
+
+  const recolored = await og.svg({ logo: { color: '#abcdef' }, title: 'Hello' })
+  assert.match(recolored, /id="site-mark"/)
+  assert.match(recolored, /color="#abcdef"/)
+  assert.match(recolored, /fill="#abcdef"/)
+
+  const swapped = await og.svg({ logo: { src: pageLogo }, title: 'Hello' })
+  assert.match(swapped, /id="page-mark"/)
+  assert.doesNotMatch(swapped, /id="site-mark"/)
+  assert.match(swapped, /color="#111111"/)
+})
+
+test('logo currentColor inherits wrapper color and inner style is stripped', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-logo-'))
+  const logoSvg = join(dir, 'mark.svg')
+  writeFileSync(
+    logoSvg,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+      <style>path { fill: #ff0000 } text { fill: #00ff00 }</style>
+      <path fill="currentColor" d="M0 0h10v10H0z"/>
+    </svg>`,
+  )
+  const og = defineOg({
+    cacheDir: false,
+    font: { family: 'Inter', files: [font] },
+    logo: { src: logoSvg, width: 40 },
+    theme: { foreground: '#123456' },
+  })
+  const markup = await og.svg({ title: 'Hello' })
+  assert.match(markup, /color="#123456"/)
+  assert.match(markup, /fill="#123456"/)
+  assert.match(markup, /fill="currentColor"/)
+  assert.doesNotMatch(markup, /path \{ fill: #ff0000/)
+  assert.doesNotMatch(markup, /text \{ fill: #00ff00/)
+  assert.match(markup, /fill="#123456"[^>]*>[\s\S]*Hello/)
+})
+
+async function embeddedSize(markup: string) {
+  const href = markup.match(/href="data:image\/png;base64,([^"]+)"/)?.[1]
+  assert.ok(href)
+  return sharp(Buffer.from(href, 'base64')).metadata()
+}
+
+test('sharp downscales large photos to cover the canvas and never upscales', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-photo-'))
+  const large = join(dir, 'large.png')
+  const small = join(dir, 'small.png')
+  const wide = join(dir, 'wide.png')
+  const portrait = join(dir, 'portrait.png')
+  await sharp({
+    create: { background: '#336699', channels: 3, height: 3000, width: 4000 },
+  })
+    .png()
+    .toFile(large)
+  await sharp({
+    create: { background: '#993366', channels: 3, height: 40, width: 50 },
+  })
+    .png()
+    .toFile(small)
+  await sharp({
+    create: { background: '#669933', channels: 3, height: 1500, width: 4000 },
+  })
+    .png()
+    .toFile(wide)
+  await sharp({
+    create: { background: '#996633', channels: 3, height: 4000, width: 2000 },
+  })
+    .png()
+    .toFile(portrait)
+
+  const og = defineOg({
+    cacheDir: false,
+    compress: false,
+    font: { family: 'Inter', files: [font] },
+    template: 'editorial',
+  })
+  const largeMeta = await embeddedSize(await og.svg({ image: large, title: 'Large' }))
+  assert.equal(largeMeta.width, 2400)
+  assert.equal(largeMeta.height, 1800)
+
+  const wideMeta = await embeddedSize(await og.svg({ image: wide, title: 'Wide' }))
+  assert.ok((wideMeta.height ?? 0) >= 630, `wide height ${wideMeta.height}`)
+
+  const backdrop = defineOg({
+    background: { src: large },
+    cacheDir: false,
+    compress: false,
+    font: { family: 'Inter', files: [font] },
+    template: 'backdrop',
+  })
+  assert.match(await backdrop.svg({ title: 'Back' }), /width="2400" height="1800"/)
+
+  const portraitOg = defineOg({
+    background: { src: portrait },
+    cacheDir: false,
+    compress: false,
+    font: { family: 'Inter', files: [font] },
+    template: 'backdrop',
+  })
+  const portraitMeta = await embeddedSize(await portraitOg.svg({ title: 'Portrait' }))
+  assert.ok((portraitMeta.width ?? 0) >= 1200, `portrait width ${portraitMeta.width}`)
+  assert.equal(portraitMeta.width, 2000)
+  assert.equal(portraitMeta.height, 4000)
+
+  const smallMeta = await embeddedSize(await og.svg({ image: small, title: 'Small' }))
+  assert.equal(smallMeta.width, 50)
+  assert.equal(smallMeta.height, 40)
+})
+
+test('cache key follows whether compression ran', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'astro-og-kit-compress-'))
+  const rawOg = defineOg({
+    cacheDir: dir,
+    compress: false,
+    font: { family: 'Inter', files: [font] },
+  })
+  const raw = Buffer.from(await rawOg.render({ title: 'Sized' }))
+  const packedOg = defineOg({
+    cacheDir: dir,
+    compress: true,
+    font: { family: 'Inter', files: [font] },
+  })
+  const packed = Buffer.from(await packedOg.render({ title: 'Sized' }))
+  const pngs = readdirSync(dir).filter((name) => name.endsWith('.png'))
+  assert.equal(pngs.length, 2)
+  assert.ok(packed.length < raw.length)
 })
 
 test('tells you to pass the imported image object, not .src', async () => {

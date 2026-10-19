@@ -24,9 +24,9 @@ export type OgFont = {
 export type OgImageSource = string | URL | { fsPath?: string; src: string }
 
 export type OgLogo = {
-  /** Fill for SVG shapes that don't set their own (the `currentColor` of your logo). */
+  /** CSS `color` and `fill` on the wrapper so `currentColor` inherits. The file's inner `<style>` is stripped. */
   color?: string
-  /** Extra CSS scoped to the logo, e.g. `.accent { fill: #e8ddc1 }`. */
+  /** Extra CSS inserted into the logo SVG, e.g. `.accent { fill: #e8ddc1 }`. Not scoped. */
   css?: string
   /** SVG (recommended), PNG or JPEG. */
   src: OgImageSource
@@ -55,6 +55,8 @@ export type OgPage = {
   footer?: string | false
   /** Page photo; the editorial template shows it on the right. */
   image?: OgImageSource
+  /** Override the site logo for this page, or `false` to hide it. */
+  logo?: Partial<OgLogo> | false
   /** Page URL path, e.g. "/about/". The image slug is always derived from this. */
   pathname?: string
   template?: OgTemplateOption
@@ -106,7 +108,7 @@ export type OgConfig = {
   background?: OgBackground
   /** Reuse renders across builds. Default "node_modules/.astro-og-kit"; `false` disables. */
   cacheDir?: string | false
-  /** Quantize PNGs with sharp when it's installed (Astro ships it). Default true. */
+  /** Quantize PNGs with sharp when it's installed. Default true. Warns once if sharp cannot be loaded. */
   compress?: boolean
   font: OgFont
   /** Site-wide small line, usually the site name or domain. */
@@ -123,9 +125,9 @@ export type OgConfig = {
 }
 
 export type OgMetaInput = {
-  description?: string
   /** Astro deploy base. `<OgMeta>` sets this from `import.meta.env.BASE_URL`. */
   deployBase?: string
+  description?: string
   /**
    * Override the generated og:image URL. When set, width/height tags are omitted.
    * Leave unset and let `meta()` / `<OgMeta>` generate the URL.
@@ -138,7 +140,7 @@ export type OgMetaInput = {
   title: string
   /** og:type. Default "website". */
   type?: string
-  /** Page URL or path, e.g. `Astro.url`. */
+  /** Page URL or path, e.g. `Astro.url`. Used for og:url and og:image. */
   url: URL | string
 }
 

@@ -10,7 +10,7 @@ Build-time Open Graph images for Astro. SVG templates, rendered to PNG with
 ## Install
 
 ```sh
-npm install astro-og-kit@next
+npm i astro-og-kit
 ```
 
 ## Quick start
@@ -46,7 +46,8 @@ import { og } from '../og'
 ```
 
 Set `site` in `astro.config` so image URLs are absolute. Pass the imported image object into
-`image`, not `.src`.
+`image`, not `.src`. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`;
+relative values use `Astro.site`. Defaults to `Astro.url`.
 
 ## Templates
 
@@ -85,7 +86,7 @@ export const og = defineOg({
 ```
 
 Tweak a built-in without writing a template: `template: editorial({ titleSize: 64, accentBar: false })`
-(`titleMaxLines`, `titleMaxWidth`).
+(`titleLineHeight`, `titleMaxLines`, `titleMaxWidth`).
 
 ## Custom template
 
@@ -133,7 +134,10 @@ export const og = defineOg({
 | `compress`   | Shrink PNGs with sharp when installed. Default `true`.      |
 | `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns it off. |
 
-Per page: `title`, `pathname`, `image`, `background`, `footer`, `template`, `theme`, `data`.
+Per page: `title`, `pathname`, `image`, `background`, `footer`, `logo`, `template`, `theme`, `data`.
+`logo: false` hides the site logo; an object is merged over it.
+`WIDTH` and `HEIGHT` (`1200`, `630`) are exported for custom templates. A logo file's inner
+`<style>` is stripped; color comes from `logo.color` / `currentColor`.
 
 ## More
 

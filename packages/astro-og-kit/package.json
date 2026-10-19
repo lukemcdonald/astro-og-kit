@@ -33,7 +33,8 @@
   },
   "files": [
     "dist",
-    "src/OgMeta.astro"
+    "src/OgMeta.astro",
+    "src/page-path.ts"
   ],
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
