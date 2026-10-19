@@ -1,6 +1,7 @@
 import { og } from '../../og'
 
-export const { GET, getStaticPaths, prerender } = og.route([
+export const prerender = true
+export const { GET, getStaticPaths } = og.route([
   { mark: false, pathname: '/', title: 'Berean Bible Church' },
   { pathname: '/about', title: 'Who We Are' },
   { pathname: '/about/confessional-statement', title: 'Confessional Statement' },

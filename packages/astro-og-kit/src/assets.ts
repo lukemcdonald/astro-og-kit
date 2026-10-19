@@ -41,23 +41,12 @@ function cached<T>(key: string, load: () => T): T {
   return memo.get(key) as T
 }
 
-function looksLikeAstroSrc(source: OgImageSource): boolean {
-  if (typeof source === 'string') {
-    return source.includes('/_astro/')
-  }
-  if (source instanceof URL) {
-    return source.pathname.includes('/_astro/')
-  }
-
-  return typeof source.src === 'string' && source.src.includes('/_astro/')
-}
-
-function missingFileMessage(path: string, source?: OgImageSource): string {
-  if ((source && looksLikeAstroSrc(source)) || path.includes('/_astro/') || path.includes('\\_astro\\')) {
+function missingFileMessage(path: string): string {
+  if (path.includes('/_astro/') || path.includes('\\_astro\\')) {
     return `[astro-og-kit] File not found: ${path}. Pass the imported image object, not .src.`
   }
 
-  return `[astro-og-kit] File not found: ${path}`
+  return `[astro-og-kit] File not found: ${path}. Paths are relative to the project root.`
 }
 
 /** Turn a path, file URL or imported Astro image into an absolute file path. */
@@ -86,9 +75,9 @@ export function resolvePath(source: OgImageSource, root = process.cwd()): string
   return join(root, path.replace(/^[/\\]/, ''))
 }
 
-function read(path: string, source?: OgImageSource) {
+function read(path: string) {
   if (!existsSync(path)) {
-    throw new Error(missingFileMessage(path, source))
+    throw new Error(missingFileMessage(path))
   }
 
   return readFileSync(path)
@@ -122,7 +111,7 @@ export function loadImage(source: OgImageSource): Promise<ImageData> {
   const path = resolvePath(source)
 
   return cached(`uri:${path}`, async () => {
-    let bytes = read(path, source)
+    let bytes = read(path)
     let mime = sniff(bytes)
     if (mime === 'image/webp' || mime === 'image/avif') {
       const sharp = await loadSharp()
@@ -133,7 +122,9 @@ export function loadImage(source: OgImageSource): Promise<ImageData> {
       mime = 'image/jpeg'
     }
     if (!mime || mime === 'image/svg+xml') {
-      throw new Error(`[astro-og-kit] Unsupported image: ${path}`)
+      throw new Error(
+        `[astro-og-kit] Unsupported image: ${path}. Use PNG, JPEG, or GIF. WebP and AVIF need sharp.`,
+      )
     }
 
     return {
@@ -171,7 +162,7 @@ export async function loadLogo(
   const path = resolvePath(logo.src)
   const width = logo.width ?? defaults.width
 
-  if (sniff(read(path, logo.src)) !== 'image/svg+xml') {
+  if (sniff(read(path)) !== 'image/svg+xml') {
     const { height: sourceHeight, href, width: sourceWidth } = await loadImage(path)
     const height = (width * sourceHeight) / sourceWidth
 
@@ -182,7 +173,7 @@ export async function loadLogo(
     }
   }
 
-  const source = read(path, logo.src).toString('utf8')
+  const source = read(path).toString('utf8')
   const viewBox = source.match(/viewBox=["']([^"']+)["']/)?.[1]?.trim()
   const [, , vbWidth, vbHeight] = (viewBox ?? '').split(/[\s,]+/).map(Number)
   if (!viewBox || !vbWidth || !vbHeight) {

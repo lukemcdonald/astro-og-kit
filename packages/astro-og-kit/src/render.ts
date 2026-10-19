@@ -1,7 +1,7 @@
 import type { OgConfig, OgPage, OgTemplate, OgTemplateContext, OgTheme } from './types.ts'
 
 import { createHash, randomBytes } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { Resvg } from '@resvg/resvg-js'
@@ -105,8 +105,17 @@ function cacheKey(config: OgConfig, svgMarkup: string) {
 
 function writeCache(cacheFile: string, png: Uint8Array) {
   const tmp = `${cacheFile}.${process.pid}-${randomBytes(4).toString('hex')}.tmp`
-  writeFileSync(tmp, png)
-  renameSync(tmp, cacheFile)
+  try {
+    writeFileSync(tmp, png)
+    renameSync(tmp, cacheFile)
+  } catch (error) {
+    try {
+      unlinkSync(tmp)
+    } catch {
+      // tmp may not exist if writeFileSync failed
+    }
+    throw error
+  }
 }
 
 /** Render one page to PNG bytes. */

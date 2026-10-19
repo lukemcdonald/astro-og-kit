@@ -130,6 +130,30 @@ test('cache write is atomic and rejects non-PNG hits', async () => {
   assert.equal(hit.equals(recovered), true)
 })
 
+test('editorial and backdrop svg keep logo, accent bar, and title tspans', async () => {
+  const editorial = defineOg({
+    cacheDir: false,
+    font: { family: 'Inter', files: [font] },
+    logo: { src: logo },
+    template: 'editorial',
+  })
+  const editorialSvg = await editorial.svg({ mark: 'example.com', title: 'Hello' })
+  assert.match(editorialSvg, /x="96" y="80"/)
+  assert.match(editorialSvg, /<rect width="12" height="630"/)
+  assert.match(editorialSvg, /<tspan x="96"/)
+
+  const backdrop = defineOg({
+    cacheDir: false,
+    font: { family: 'Inter', files: [font] },
+    logo: { src: logo },
+    template: 'backdrop',
+  })
+  const backdropSvg = await backdrop.svg({ title: 'Hello' })
+  assert.match(backdropSvg, /x="96" y="48"/)
+  assert.match(backdropSvg, /<rect width="12" height="630"/)
+  assert.match(backdropSvg, /<tspan x="96"/)
+})
+
 test('tells you to pass the imported image object, not .src', async () => {
   const og = defineOg({ cacheDir: false, font: { family: 'Inter', files: [font] } })
   await assert.rejects(

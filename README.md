@@ -36,7 +36,8 @@ export const og = defineOg({
 ```ts
 import { og } from '../../og'
 
-export const { GET, getStaticPaths, prerender } = og.route([
+export const prerender = true
+export const { GET, getStaticPaths } = og.route([
   { pathname: '/', title: 'Home' },
   { pathname: '/about', title: 'About' },
 ])
@@ -54,7 +55,8 @@ import { og } from '../og'
 ```
 
 Set `site` in `astro.config` so image URLs are absolute. Prefer to write your own tags? Use
-`og.path(pathname)` for the image path or `og.meta({...})` for the tag list.
+`og.path(Astro.url.pathname, import.meta.env.BASE_URL)` for the image path or `og.meta({...})`
+for the tag list.
 
 ### Make it look like your site
 
@@ -83,10 +85,11 @@ passed and the file is not on disk, the kit throws that sentence.
 - Pass the page path **without** the Astro deploy `base`. `/about/` → `/og/about.png`.
 - If `pathname` includes `import.meta.env.BASE_URL`, that prefix is stripped so it is not duplicated
   in the slug, then prefixed on the result. With `base: '/docs'` in `astro.config`, `/about/` and
-  `/docs/about/` both become `/docs/og/about.png`. `<OgMeta>` passes `deployBase` so generated tags
-  keep `og:image:width` / `og:image:height`.
-- `defineOg({ base })` is the **image route** (`/og` by default), not Astro's deploy `base`. Match
-  it to where the route file lives.
+  `/docs/about/` both become `/docs/og/about.png`. Pass `import.meta.env.BASE_URL` as the second
+  argument; `<OgMeta>` does that via `deployBase` so generated tags keep `og:image:width` /
+  `og:image:height`.
+- `defineOg({ prefix })` is the **image route** (`/og` by default), not Astro's deploy `base`. Match
+  it to where the route file lives. The route file also needs a literal `export const prerender = true`.
 
 ## Templates
 
@@ -144,7 +147,7 @@ Pass `data` on a page for anything extra your template needs. Use `og.svg(page)`
 | `logo`       | `{ src, width?, color?, css? }`. SVG keeps it crisp; `color` fills `currentColor`; `css` styles classes. |
 | `background` | `{ src, overlay?, opacity?, position?, crop? }`. `crop` is `[x, y, width, height]` in source pixels.     |
 | `mark`       | Small line under the title, e.g. your domain.                                                            |
-| `base`       | Image route prefix. Default `/og`; match it to where the route file lives. Not Astro's deploy `base`.    |
+| `prefix`     | Image route prefix. Default `/og`; match it to where the route file lives. Not Astro's deploy `base`.    |
 | `compress`   | Shrink PNGs with sharp when installed. Default `true`.                                                   |
 | `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns caching off.                                         |
 

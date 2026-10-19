@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
@@ -8,6 +9,9 @@ import { createMeta, imagePath } from '../src/route.ts'
 const font = fileURLToPath(
   new URL('../../../examples/editorial/src/assets/Inter-SemiBold.ttf', import.meta.url),
 )
+
+/** Astro's detector in packages/astro/src/core/routing/prerender.ts */
+const ASTRO_PRERENDER = /^\s*export\s+const\s+prerender\s*=\s*(true|false);?/m
 
 test('path and meta', () => {
   const og = defineOg({ font: { family: 'Inter', files: [font] } })
@@ -53,10 +57,31 @@ test('path and meta honor Astro base', () => {
   assert.ok(tags.some((t) => 'property' in t && t.property === 'og:image:height' && t.content === '630'))
 })
 
-test('route() prerenders and rejects GET without title', async () => {
+test('prefix / does not produce a protocol-relative URL', () => {
+  assert.equal(imagePath('/', '/', '/'), '/index.png')
+  assert.equal(imagePath('/about/', '/', '/'), '/about.png')
+  assert.equal(imagePath('/about/', '/', '/docs'), '/docs/about.png')
+  const og = defineOg({ font: { family: 'Inter', files: [font] }, prefix: '/' })
+  assert.equal(og.path('/'), '/index.png')
+  assert.equal(new URL(og.path('/'), 'https://origin').toString(), 'https://origin/index.png')
+})
+
+test('example route files match Astro prerender regex', () => {
+  const files = [
+    '../../../examples/backdrop/src/pages/og/[...slug].png.ts',
+    '../../../examples/editorial/src/pages/og/[...slug].png.ts',
+    '../../../examples/custom/src/pages/og/[...slug].png.ts',
+  ]
+  for (const file of files) {
+    const source = readFileSync(new URL(file, import.meta.url), 'utf8')
+    assert.match(source, ASTRO_PRERENDER)
+  }
+})
+
+test('route() lists paths and rejects GET without title', async () => {
   const og = defineOg({ cacheDir: false, font: { family: 'Inter', files: [font] } })
   const endpoint = og.route([{ pathname: '/about', title: 'About' }])
-  assert.equal(endpoint.prerender, true)
+  assert.equal('prerender' in endpoint, false)
 
   const paths = await endpoint.getStaticPaths()
   assert.deepEqual(paths, [
@@ -66,7 +91,7 @@ test('route() prerenders and rejects GET without title', async () => {
     },
   ])
 
-  await assert.rejects(() => endpoint.GET({ props: {} }), /Missing page title/)
+  await assert.rejects(() => endpoint.GET({ props: {} }), /export const prerender = true/)
 
   const response = await endpoint.GET({ props: { title: 'About' } })
   assert.equal(response.headers.get('Content-Type'), 'image/png')

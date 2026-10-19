@@ -2,16 +2,6 @@ import type { OgConfig, OgMetaInput, OgMetaTag, OgPage, OgRoute } from './types.
 
 import { HEIGHT, WIDTH, renderPng } from './render.ts'
 
-export function astroBaseUrl(): string {
-  const env = (import.meta as ImportMeta & { env?: { BASE_URL?: string } }).env
-  const value = env?.BASE_URL
-  if (typeof value === 'string' && value.length > 0) {
-    return value
-  }
-
-  return '/'
-}
-
 /** `/docs/` → `/docs`, `/` stays `/`. */
 export function normalizeBase(base: string): string {
   const trimmed = base.replace(/^\/+|\/+$/g, '')
@@ -20,6 +10,18 @@ export function normalizeBase(base: string): string {
   }
 
   return `/${trimmed}`
+}
+
+function joinUrl(...segments: string[]): string {
+  const parts: string[] = []
+  for (const segment of segments) {
+    const trimmed = segment.replace(/^\/+|\/+$/g, '')
+    if (trimmed !== '') {
+      parts.push(trimmed)
+    }
+  }
+
+  return `/${parts.join('/')}`
 }
 
 /** Drop Astro's deploy base from a page pathname so the slug does not include it. */
@@ -39,9 +41,8 @@ export function stripDeployBase(pathname: string, deployBase: string): string {
   return path
 }
 
-export function slugFor(pathname: string, deployBase = astroBaseUrl()): string {
-  const stripped = stripDeployBase(pathname, deployBase)
-  const trimmed = stripped.replace(/\.html$/, '').replace(/^\/+|\/+$/g, '')
+export function slugFor(pathname: string): string {
+  const trimmed = pathname.replace(/\.html$/, '').replace(/^\/+|\/+$/g, '')
   if (trimmed === '') {
     return 'index'
   }
@@ -54,13 +55,12 @@ export function slugFor(pathname: string, deployBase = astroBaseUrl()): string {
  * (`/og`); `deployBase` is Astro's `base`. The deploy base is stripped from
  * the slug and prefixed on the result.
  */
-export function imagePath(pathname: string, prefix = '/og', deployBase = astroBaseUrl()): string {
+export function imagePath(pathname: string, prefix = '/og', deployBase = '/'): string {
   const deploy = normalizeBase(deployBase)
   const route = normalizeBase(prefix)
-  const slug = slugFor(pathname, deploy)
-  const root = deploy === '/' ? '' : deploy
+  const slug = slugFor(stripDeployBase(pathname, deploy))
 
-  return `${root}${route}/${slug}.png`
+  return joinUrl(deploy, route, `${slug}.png`)
 }
 
 export function createMeta(path: (pathname: string, deployBase?: string) => string) {
@@ -102,7 +102,7 @@ export function createRoute(config: OgConfig) {
     GET: async ({ props }) => {
       if (typeof props.title !== 'string' || props.title.length === 0) {
         throw new Error(
-          '[astro-og-kit] Missing page title. og.route() GET needs a prerendered page with props.title.',
+          '[astro-og-kit] Missing page title. og.route() GET needs a prerendered page with props.title. Add a literal `export const prerender = true` to the route file.',
         )
       }
 
@@ -120,6 +120,5 @@ export function createRoute(config: OgConfig) {
         props: page,
       }))
     },
-    prerender: true,
   })
 }

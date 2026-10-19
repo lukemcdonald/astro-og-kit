@@ -104,11 +104,6 @@ export type OgTemplateOption = OgTemplateName | OgTemplate
 
 export type OgConfig = {
   background?: OgBackground
-  /**
-   * Image route prefix. Must match where the route file lives. Default "/og".
-   * Not Astro's deploy `base` (`import.meta.env.BASE_URL`); `path()` prefixes that itself.
-   */
-  base?: string
   /** Reuse renders across builds. Default "node_modules/.astro-og-kit"; `false` disables. */
   cacheDir?: string | false
   /** Quantize PNGs with sharp when it's installed (Astro ships it). Default true. */
@@ -117,6 +112,11 @@ export type OgConfig = {
   logo?: OgLogo
   /** Site-wide small line, usually the site name or domain. */
   mark?: string
+  /**
+   * Image route prefix. Must match where the route file lives. Default "/og".
+   * Not Astro's deploy `base` (`import.meta.env.BASE_URL`); pass that to `path()` as `deployBase`.
+   */
+  prefix?: string
   /** Built-in template name, a configured template, or your own function. Default "editorial". */
   template?: OgTemplateOption
   theme?: Partial<OgTheme>
@@ -126,7 +126,10 @@ export type OgMetaInput = {
   description?: string
   /** Astro deploy base. `<OgMeta>` sets this from `import.meta.env.BASE_URL`. */
   deployBase?: string
-  /** Use a specific image URL instead of the generated one. */
+  /**
+   * Override the generated og:image URL. When set, width/height tags are omitted.
+   * Leave unset and let `meta()` / `<OgMeta>` generate the URL.
+   */
   image?: string
   imageAlt?: string
   /** Site origin, e.g. `Astro.site`. Needed for absolute image URLs. */
@@ -144,7 +147,6 @@ export type OgMetaTag = { content: string; name: string } | { content: string; p
 export type OgRoute = {
   GET: (context: { props: Partial<OgPage> }) => Promise<Response>
   getStaticPaths: () => Promise<{ params: { slug: string }; props: OgPage }[]>
-  prerender: true
 }
 
 export type Og = {
@@ -153,14 +155,14 @@ export type Og = {
   meta(input: OgMetaInput): OgMetaTag[]
   /**
    * Image path for a page. `/about/` → `/og/about.png`.
-   * Pass the page path without the Astro deploy base; if the path includes
-   * `import.meta.env.BASE_URL`, that prefix is stripped from the slug and
-   * always prefixed on the result (`base: '/docs'` → `/docs/og/about.png`).
+   * Pass the page path without the Astro deploy base. If `pathname` includes
+   * `deployBase` (default `/`), that prefix is stripped from the slug and
+   * always prefixed on the result (`'/docs'` → `/docs/og/about.png`).
    */
   path(pathname: string, deployBase?: string): string
   /** Render a page directly, outside a route. */
   render(page: OgPage): Promise<Uint8Array>
-  /** `getStaticPaths`, `GET`, and `prerender: true` for `src/pages/og/[...slug].png.ts`. */
+  /** `getStaticPaths` and `GET` for `src/pages/og/[...slug].png.ts`. Put `export const prerender = true` next to it. */
   route(pages: OgPage[] | (() => OgPage[] | Promise<OgPage[]>)): OgRoute
   svg(page: OgPage): Promise<string>
 }
