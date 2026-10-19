@@ -13,9 +13,12 @@
     "format": "prettier --write .",
     "lint": "prettier --check . && npm run check",
     "examples": "npm run build && npm run build -w example-backdrop -w example-editorial -w example-custom",
-    "verify": "npm run lint && npm test"
+    "verify": "npm run lint && npm test",
+    "changeset": "changeset",
+    "release": "node scripts/guard-0x-version.mjs && changeset publish --tag next"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "prettier": "^3.6.2",
     "prettier-plugin-astro": "^0.14.1"
   }

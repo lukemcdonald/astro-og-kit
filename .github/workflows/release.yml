@@ -1,20 +1,42 @@
-# Experimental releases only. Manual trigger; publishes 0.x under the `next`
-# dist-tag with npm provenance. Needs an NPM_TOKEN secret (not set up yet).
-name: Release (next)
+# Filename must stay release.yml (npm trusted publisher).
+name: Release
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+permissions:
+  actions: write
+  contents: write
+  id-token: write
+  pull-requests: write
 jobs:
-  publish:
+  release:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
-        with: { node-version: 24, registry-url: https://registry.npmjs.org }
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@^11.5.1 && npm --version
       - run: npm ci
-      - run: npm test && npm run build
-      - run: npm publish -w astro-og-kit --tag next --provenance --access public
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        id: changesets
+        with:
+          commit-message: 'chore: version packages'
+          pr-title: 'chore: version packages'
+          publish-script: npm run release
+      - name: Run required CI on the Version Packages branch
+        if: steps.changesets.outputs.pr-number != ''
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ref=$(gh pr view "${{ steps.changesets.outputs.pr-number }}" --json headRefName --jq .headRefName)
+          gh workflow run ci.yml --ref "$ref"

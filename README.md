@@ -174,6 +174,8 @@ npm run examples
 Examples: `examples/backdrop` (bbcmonticello.com), `examples/editorial` (lukemcdonald.com),
 `examples/custom` (a template that is just a function).
 
+0.x `next` releases: see [RELEASING.md](RELEASING.md).
+
 ## License
 
 MIT
