@@ -9,6 +9,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 permissions:
+  actions: write
   contents: write
   id-token: write
   pull-requests: write
@@ -29,5 +30,13 @@ jobs:
       - run: npm test
       - run: npm run build
       - uses: changesets/action@v2
+        id: changesets
         with:
           publish-script: npm run release
+      - name: Run required CI on the Version Packages branch
+        if: steps.changesets.outputs.pr-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ref=$(gh pr view "${{ steps.changesets.outputs.pr-number }}" --json headRefName --jq .headRefName)
+          gh workflow run ci.yml --ref "$ref"

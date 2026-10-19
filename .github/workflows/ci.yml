@@ -1,5 +1,10 @@
 name: CI
-on: [push, pull_request]
+# workflow_dispatch: GITHUB_TOKEN version-PR pushes do not start workflows.
+# release.yml dispatches this onto changeset-release/* so the required `check` reports.
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
 jobs:
   check:
     runs-on: ubuntu-latest

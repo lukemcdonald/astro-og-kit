@@ -12,6 +12,14 @@
 
 Docs and CI-only PRs do not need a changeset. CI warns you if `packages/astro-og-kit/src` changed without one. Use `npx changeset --empty` when you touched `src` but it should not release.
 
+### Version PR and the `check` ruleset
+
+`main` requires the GitHub Actions check named `check`. The Version Packages PR is opened with `GITHUB_TOKEN`, and GitHub will not start `push` / `pull_request` workflows from that token, so CI would never report.
+
+We do **not** add a PAT. After the Version PR is opened or updated, `release.yml` dispatches `ci.yml` onto `changeset-release/*` (`workflow_dispatch` is allowed with `GITHUB_TOKEN`). That run is the required `check`.
+
+If `check` is still missing, merge the Version PR with admin bypass (the ruleset allows admins to bypass on PRs).
+
 ## Why `--tag next`, not prerelease mode
 
 `changeset pre enter next` would version as `0.1.0-next.N`, but Changesets publishes those to **`latest`** while every published version is still a `next` prerelease — which is the current npm state (`0.1.0-next.0` only). You also cannot pass `--tag next` in prerelease mode.
