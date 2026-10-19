@@ -32,6 +32,8 @@ jobs:
       - uses: changesets/action@v2
         id: changesets
         with:
+          commit-message: 'chore: version packages'
+          pr-title: 'chore: version packages'
           publish-script: npm run release
       - name: Run required CI on the Version Packages branch
         if: steps.changesets.outputs.pr-number != ''

@@ -7,7 +7,7 @@
 1. Make your change.
 2. From the repo root, run `npx changeset`. Pick `astro-og-kit`, the bump, and a short summary.
 3. Commit the new file in `.changeset/` with the rest of the work and open a PR.
-4. When that PR merges to `main`, GitHub opens or updates a **Version Packages** PR (version + `packages/astro-og-kit/CHANGELOG.md`).
+4. When that PR merges to `main`, GitHub opens or updates a Version PR titled `chore: version packages` (version + `packages/astro-og-kit/CHANGELOG.md`).
 5. Merge the Version PR. CI runs `changeset publish --tag next` and publishes with provenance.
 
 Docs and CI-only PRs do not need a changeset. CI warns you if `packages/astro-og-kit/src` changed without one. Use `npx changeset --empty` when you touched `src` but it should not release.
@@ -18,7 +18,7 @@ Docs and CI-only PRs do not need a changeset. CI warns you if `packages/astro-og
 
 We do **not** add a PAT. After the Version PR is opened or updated, `release.yml` dispatches `ci.yml` onto `changeset-release/*` (`workflow_dispatch` is allowed with `GITHUB_TOKEN`). That run is the required `check`.
 
-If `check` is still missing, merge the Version PR with admin bypass (the ruleset allows admins to bypass on PRs).
+If `check` or `pr-title` is still missing, merge the Version PR with admin bypass (the ruleset allows admins to bypass on PRs). The Version PR title is `chore: version packages` so it is a valid Conventional Commit when the check does run.
 
 ## Why `--tag next`, not prerelease mode
 

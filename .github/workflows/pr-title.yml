@@ -1,0 +1,31 @@
+# Validates PR titles as Conventional Commits. The repo is squash-merge only,
+# so the title becomes the commit on main.
+#
+# pull_request (not pull_request_target): this is a single-maintainer repo,
+# so fork PRs are not the workflow. pull_request uses this branch's workflow
+# (needed for this PR) and does not run untrusted base-ref code.
+name: PR title
+on:
+  pull_request:
+    types: [edited, opened, reopened, synchronize]
+permissions:
+  pull-requests: read
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            chore
+            refactor
+            perf
+            test
+            ci
+            build
+            revert
