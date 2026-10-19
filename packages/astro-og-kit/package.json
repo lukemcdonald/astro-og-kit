@@ -28,7 +28,11 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./OgMeta.astro": "./src/OgMeta.astro"
+    "./OgMeta.astro": "./src/OgMeta.astro",
+    "./integration": {
+      "types": "./dist/integration.d.ts",
+      "default": "./dist/integration.js"
+    }
   },
   "files": [
     "dist",

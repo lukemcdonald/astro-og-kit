@@ -4,8 +4,7 @@ import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { HEIGHT, WIDTH, defineOg } from '../src/index.ts'
-import { pagePath } from '../src/page-path.ts'
-import { createMeta, imagePath } from '../src/route.ts'
+import { createMeta, imagePath, metaTags, pagePath } from '../src/page-path.ts'
 
 function tag(tags: ReturnType<ReturnType<typeof createMeta>>, key: string) {
   return tags.find((t) => ('property' in t && t.property === key) || ('name' in t && t.name === key))?.content
@@ -29,6 +28,9 @@ test('path and meta', () => {
   })
   assert.equal(tag(tags, 'og:image'), 'https://example.com/og/about.png')
   assert.equal(tag(tags, 'og:url'), 'https://example.com/about/')
+  assert.equal(tag(tags, 'og:image:width'), String(WIDTH))
+  assert.equal(tag(tags, 'og:image:height'), String(HEIGHT))
+  assert.deepEqual(tags, metaTags({ site: 'https://example.com', title: 'About', url: '/about/' }, '/og'))
   assert.equal(WIDTH, 1200)
   assert.equal(HEIGHT, 630)
 })

@@ -1,24 +1,49 @@
 ---
-import type { Og, OgMetaInput } from 'astro-og-kit'
+import type { OgMetaProps } from 'astro-og-kit'
 import { build, trailingSlash } from 'astro:config/client'
 
-import { pagePath } from './page-path.ts'
+import { encodeRecord, isImageUrlOverride, metaTags, pagePath, warnOnDemand } from './page-path.ts'
 
-type Props = Omit<OgMetaInput, 'site' | 'url'> & {
-  og: Og
-  /** Page URL for og:url and og:image. Defaults to `Astro.url`. */
-  url?: string | URL
-}
+type Props = OgMetaProps
 
-const { og, url, ...input } = Astro.props
+const { background, data, footer, image, logo, og, template, theme, url, ...input } = Astro.props
 const pageUrl = new URL(url ?? Astro.url, Astro.site)
 const path = pagePath(pageUrl.pathname, { buildFormat: build.format, trailingSlash })
-const tags = og.meta({
+const override = isImageUrlOverride(image)
+const kit = import.meta.env.ASTRO_OG_KIT
+if (!og && !kit) {
+  throw new Error('[astro-og-kit] <OgMeta> needs ogKit(og) in astro.config or an og={og} prop.')
+}
+const meta = {
   ...input,
   deployBase: import.meta.env.BASE_URL,
+  image: override ? image : undefined,
   site: Astro.site,
   url: new URL(path, Astro.site ?? pageUrl),
-})
+}
+const tags = og ? og.meta(meta) : metaTags(meta, kit)
+const carry = kit && Astro.isPrerendered && !override
+if (kit && import.meta.env.DEV && !Astro.isPrerendered && !override) {
+  warnOnDemand(path)
+}
 ---
 
 {tags.map((tag) => <meta {...tag} />)}
+{
+  carry && (
+    <meta
+      name="astro-og-kit"
+      content={encodeRecord({
+        background,
+        data,
+        footer,
+        image,
+        logo,
+        pathname: path,
+        template,
+        theme,
+        title: input.title,
+      })}
+    />
+  )
+}

@@ -25,29 +25,43 @@ export const og = defineOg({
 })
 ```
 
-**2.** `src/pages/og/[...slug].png.ts`:
+**2.** `astro.config.mjs`:
 
-```ts
-import { og } from '../../og'
+```js
+import ogKit from 'astro-og-kit/integration'
+import { defineConfig } from 'astro/config'
+import { og } from './src/og'
 
-export const prerender = true
-export const { GET, getStaticPaths } = og.route([{ pathname: '/', title: 'Home' }])
+export default defineConfig({
+  integrations: [ogKit(og)],
+  site: 'https://example.com',
+})
 ```
 
 **3.** In your layout `<head>`:
 
 ```astro
 ---
+import photo from '../assets/photo.jpg'
 import OgMeta from 'astro-og-kit/OgMeta.astro'
-import { og } from '../og'
 ---
 
-<OgMeta og={og} title={title} description={description} />
+<OgMeta description={description} image={photo} title={title} />
 ```
+
+Every prerendered page that renders `<OgMeta>` gets a PNG at its `og:image` URL. No page list, no
+route file. An `https://` (or `http://`) `image` string overrides `og:image` and skips generation.
+`template` on `<OgMeta>` is `'editorial'` or `'backdrop'` only.
 
 Set `site` in `astro.config` so image URLs are absolute. Pass the imported image object into
 `image`, not `.src`. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`;
 relative values use `Astro.site`. Defaults to `Astro.url`.
+
+### Advanced: explicit routes / on-demand pages
+
+On-demand pages get no build-time PNG. Use `og.route()` in `src/pages/og/[...slug].png.ts`
+(`export const prerender = true`), or pass an image URL. Without the integration, pass `og={og}`
+to `<OgMeta>`.
 
 ## Templates
 
@@ -64,8 +78,6 @@ export const og = defineOg({
   logo: { src: 'docs/logo.svg', width: 56 },
   theme: { accent: '#c6c6bd', background: '#122023', foreground: '#f4f3ec', muted: '#c6c6bd' },
 })
-
-og.route([{ image: 'src/assets/photo.jpg', pathname: '/', title: 'Hello, world' }])
 ```
 
 ### backdrop
@@ -134,8 +146,8 @@ export const og = defineOg({
 | `compress`   | Shrink PNGs with sharp when installed. Default `true`.      |
 | `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns it off. |
 
-Per page: `title`, `pathname`, `image`, `background`, `footer`, `logo`, `template`, `theme`, `data`.
-`logo: false` hides the site logo; an object is merged over it.
+Per page (on `<OgMeta>` or `og.route()`): `title`, `pathname`, `image`, `background`, `footer`,
+`logo`, `template`, `theme`, `data`. `logo: false` hides the site logo; an object is merged over it.
 `WIDTH` and `HEIGHT` (`1200`, `630`) are exported for custom templates. A logo file's inner
 `<style>` is stripped; color comes from `logo.color` / `currentColor`.
 

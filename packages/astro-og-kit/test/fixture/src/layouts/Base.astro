@@ -1,0 +1,19 @@
+---
+import OgMeta from 'astro-og-kit/OgMeta.astro'
+
+const frontmatter = Astro.props.frontmatter ?? {}
+const description = frontmatter.description
+const footer = frontmatter.footer
+const title = frontmatter.title
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{title}</title>
+    <OgMeta description={description} footer={footer} title={title} />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
