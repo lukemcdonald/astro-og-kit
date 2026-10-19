@@ -1,0 +1,4 @@
+dist
+.astro
+*.svg
+package-lock.json

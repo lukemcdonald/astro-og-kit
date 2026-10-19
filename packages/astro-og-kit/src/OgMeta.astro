@@ -1,0 +1,15 @@
+---
+import type { Og, OgMetaInput } from 'astro-og-kit'
+
+type Props = Omit<OgMetaInput, 'site' | 'url'> & { og: Og }
+
+const { og, ...input } = Astro.props
+const tags = og.meta({
+  ...input,
+  deployBase: import.meta.env.BASE_URL,
+  site: Astro.site,
+  url: Astro.url,
+})
+---
+
+{tags.map((tag) => <meta {...tag} />)}

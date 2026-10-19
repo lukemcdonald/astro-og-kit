@@ -1,0 +1,63 @@
+{
+  "name": "astro-og-kit",
+  "version": "0.1.0-next.0",
+  "description": "Build-time Open Graph images for Astro. SVG templates, rendered with resvg. No React.",
+  "keywords": [
+    "astro",
+    "og-image",
+    "open-graph",
+    "social-image"
+  ],
+  "homepage": "https://github.com/lukemcdonald/astro-og-kit",
+  "bugs": {
+    "url": "https://github.com/lukemcdonald/astro-og-kit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lukemcdonald/astro-og-kit.git"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./OgMeta.astro": "./src/OgMeta.astro"
+  },
+  "files": [
+    "dist",
+    "src/OgMeta.astro"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  },
+  "peerDependencies": {
+    "astro": ">=7",
+    "sharp": ">=0.33"
+  },
+  "peerDependenciesMeta": {
+    "sharp": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "astro": "^7.4.0",
+    "sharp": "^0.35.4",
+    "typescript": "^5.9.0"
+  }
+}

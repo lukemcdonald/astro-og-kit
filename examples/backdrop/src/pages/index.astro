@@ -1,0 +1,16 @@
+---
+import OgMeta from 'astro-og-kit/OgMeta.astro'
+import { og } from '../og'
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>astro-og-kit example</title>
+    <OgMeta og={og} title="Home" description="An astro-og-kit example." />
+  </head>
+  <body>
+    <h1>astro-og-kit example</h1>
+    <img src={og.path(Astro.url.pathname, import.meta.env.BASE_URL)} width="600" alt="" />
+  </body>
+</html>
