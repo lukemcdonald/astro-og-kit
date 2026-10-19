@@ -1,0 +1,16 @@
+---
+import OgMeta from 'astro-og-kit/OgMeta.astro'
+
+import { og } from '../og'
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Skip</title>
+    <OgMeta image="https://cdn.example.com/custom.png" og={og} title="Skip" />
+  </head>
+  <body>
+    <h1>Skip</h1>
+  </body>
+</html>

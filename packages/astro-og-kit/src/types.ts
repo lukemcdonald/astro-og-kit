@@ -168,3 +168,11 @@ export type Og = {
   route(pages: OgPage[] | (() => OgPage[] | Promise<OgPage[]>)): OgRoute
   svg(page: OgPage): Promise<string>
 }
+
+/** Props for `<OgMeta>`. Page fields are recorded by the integration and rendered to PNG. */
+export type OgMetaProps = Omit<OgMetaInput, 'image' | 'site' | 'url'> &
+  Pick<OgPage, 'background' | 'data' | 'footer' | 'image' | 'logo' | 'template' | 'theme'> & {
+    og: Og
+    /** Page URL for og:url and og:image. Defaults to `Astro.url`. */
+    url?: string | URL
+  }

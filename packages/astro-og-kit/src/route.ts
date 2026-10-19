@@ -26,7 +26,7 @@ function joinUrl(...segments: string[]): string {
 }
 
 /** Drop Astro's deploy base from a page pathname so the slug does not include it. */
-function stripDeployBase(pathname: string, deployBase: string): string {
+export function stripDeployBase(pathname: string, deployBase: string): string {
   const base = normalizeBase(deployBase)
   const path = pathname.startsWith('/') ? pathname : `/${pathname}`
   if (base === '/') {

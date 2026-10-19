@@ -25,13 +25,17 @@ export const og = defineOg({
 })
 ```
 
-**2.** `src/pages/og/[...slug].png.ts`:
+**2.** `astro.config.mjs`:
 
-```ts
-import { og } from '../../og'
+```js
+import ogkit from 'astro-og-kit/integration'
+import { defineConfig } from 'astro/config'
+import { og } from './src/og'
 
-export const prerender = true
-export const { GET, getStaticPaths } = og.route([{ pathname: '/', title: 'Home' }])
+export default defineConfig({
+  integrations: [ogkit(og)],
+  site: 'https://example.com',
+})
 ```
 
 **3.** In your layout `<head>`:
@@ -42,12 +46,17 @@ import OgMeta from 'astro-og-kit/OgMeta.astro'
 import { og } from '../og'
 ---
 
-<OgMeta og={og} title={title} description={description} />
+<OgMeta description={description} image={photo} og={og} title={title} />
 ```
 
+Every prerendered page that renders `<OgMeta>` gets a PNG at its `og:image` URL. No page list, no
+route file. `og.route()` is still there if you want an explicit list or on-demand rendering.
+On-demand pages are skipped; duplicate pathnames keep the last `<OgMeta>`.
+
 Set `site` in `astro.config` so image URLs are absolute. Pass the imported image object into
-`image`, not `.src`. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`;
-relative values use `Astro.site`. Defaults to `Astro.url`.
+`image`, not `.src`. A string URL (`https://...` or a site path) overrides `og:image` and skips
+generation. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`; relative
+values use `Astro.site`. Defaults to `Astro.url`.
 
 ## Templates
 
@@ -134,8 +143,8 @@ export const og = defineOg({
 | `compress`   | Shrink PNGs with sharp when installed. Default `true`.      |
 | `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns it off. |
 
-Per page: `title`, `pathname`, `image`, `background`, `footer`, `logo`, `template`, `theme`, `data`.
-`logo: false` hides the site logo; an object is merged over it.
+Per page (on `<OgMeta>` or `og.route()`): `title`, `pathname`, `image`, `background`, `footer`,
+`logo`, `template`, `theme`, `data`. `logo: false` hides the site logo; an object is merged over it.
 `WIDTH` and `HEIGHT` (`1200`, `630`) are exported for custom templates. A logo file's inner
 `<style>` is stripped; color comes from `logo.color` / `currentColor`.
 
