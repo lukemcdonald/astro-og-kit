@@ -28,12 +28,12 @@ export const og = defineOg({
 **2.** `astro.config.mjs`:
 
 ```js
-import ogkit from 'astro-og-kit/integration'
+import ogKit from 'astro-og-kit/integration'
 import { defineConfig } from 'astro/config'
 import { og } from './src/og'
 
 export default defineConfig({
-  integrations: [ogkit(og)],
+  integrations: [ogKit(og)],
   site: 'https://example.com',
 })
 ```

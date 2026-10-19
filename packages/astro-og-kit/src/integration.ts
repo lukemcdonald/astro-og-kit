@@ -44,8 +44,10 @@ export function pageUrl(
 /**
  * Write PNGs for every prerendered page that rendered `<OgMeta>`.
  * In `astro dev`, serve those URLs by reading the carrier tag from the page.
+ *
+ * `import ogKit from 'astro-og-kit/integration'` then `integrations: [ogKit(og)]`.
  */
-export default function ogkit(og: Og): AstroIntegration {
+export default function ogKit(og: Og): AstroIntegration {
   const prefix = og.config.prefix ?? '/og'
   let base = '/'
   let pathOptions: PagePathOptions = {}

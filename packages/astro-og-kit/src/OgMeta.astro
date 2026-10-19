@@ -12,7 +12,7 @@ const path = pagePath(pageUrl.pathname, { buildFormat: build.format, trailingSla
 const override = isImageUrlOverride(image)
 const kit = import.meta.env.ASTRO_OG_KIT
 if (!og && !kit) {
-  throw new Error('[astro-og-kit] <OgMeta> needs ogkit(og) in astro.config or an og={og} prop.')
+  throw new Error('[astro-og-kit] <OgMeta> needs ogKit(og) in astro.config or an og={og} prop.')
 }
 const meta = {
   ...input,
