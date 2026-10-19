@@ -1,6 +1,6 @@
 {
   "name": "astro-og-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Build-time Open Graph images for Astro. SVG templates, rendered with resvg. No React.",
   "keywords": [
     "astro",
