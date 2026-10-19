@@ -19,7 +19,7 @@
     "test:pnpm-bundle": "npm run build && node scripts/pnpm-bundle-fixture.mjs",
     "verify": "npm run lint && npm test && npm run docs:check",
     "changeset": "changeset",
-    "release": "node scripts/guard-0x-version.mjs && changeset publish --tag next"
+    "release": "node scripts/guard-0x-version.mjs && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^3.0.3",

@@ -19,8 +19,7 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public",
-    "provenance": true,
-    "tag": "next"
+    "provenance": true
   },
   "type": "module",
   "sideEffects": false,
