@@ -6,8 +6,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { extractRecords, pagePath, type PagePathOptions } from './page-path.ts'
-import { stripDeployBase } from './route.ts'
+import { extractRecords, pagePath, stripDeployBase, type PagePathOptions } from './page-path.ts'
 
 export function pngSlug(pathname: string, prefix = '/og', base = '/'): string | undefined {
   const path = stripDeployBase(pathname.split('?')[0] ?? '', base)
@@ -93,7 +92,7 @@ export default function ogkit(og: Og): AstroIntegration {
       'astro:config:setup': ({ command, updateConfig }) => {
         updateConfig({
           vite: {
-            define: { 'import.meta.env.ASTRO_OG_KIT': true },
+            define: { 'import.meta.env.ASTRO_OG_KIT': JSON.stringify(prefix) },
             ...(command === 'dev'
               ? {
                   plugins: [

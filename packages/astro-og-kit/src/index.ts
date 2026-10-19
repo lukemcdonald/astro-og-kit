@@ -1,7 +1,8 @@
 import type { Og, OgConfig } from './types.ts'
 
+import { createMeta, imagePath } from './page-path.ts'
 import { renderPng, renderSvg } from './render.ts'
-import { createMeta, createRoute, imagePath } from './route.ts'
+import { createRoute } from './route.ts'
 
 export type * from './types.ts'
 export { HEIGHT, WIDTH } from './render.ts'

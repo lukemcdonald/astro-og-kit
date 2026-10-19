@@ -1,15 +1,13 @@
 ---
 import OgMeta from 'astro-og-kit/OgMeta.astro'
 import photo from '../assets/photo.jpg'
-
-import { og } from '../og'
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <title>Home</title>
-    <OgMeta image={photo} og={og} title="Home" />
+    <OgMeta image={photo} title="Home" />
   </head>
   <body>
     <h1>Home</h1>

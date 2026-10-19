@@ -44,21 +44,24 @@ export default defineConfig({
 ---
 import photo from '../assets/photo.jpg'
 import OgMeta from 'astro-og-kit/OgMeta.astro'
-import { og } from '../og'
 ---
 
-<OgMeta description={description} image={photo} og={og} title={title} />
+<OgMeta description={description} image={photo} title={title} />
 ```
 
 Every prerendered page that renders `<OgMeta>` gets a PNG at its `og:image` URL. No page list, no
-route file. `og.route()` is still there if you want an explicit list or on-demand rendering.
-An `https://` (or `http://`) `image` string overrides `og:image` and skips generation.
-On-demand pages get no build-time PNG; use `og.route()` or that image URL.
+route file. An `https://` (or `http://`) `image` string overrides `og:image` and skips generation.
 `template` on `<OgMeta>` is `'editorial'` or `'backdrop'` only.
 
 Set `site` in `astro.config` so image URLs are absolute. Pass the imported image object into
 `image`, not `.src`. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`;
 relative values use `Astro.site`. Defaults to `Astro.url`.
+
+### Advanced: explicit routes / on-demand pages
+
+On-demand pages get no build-time PNG. Use `og.route()` in `src/pages/og/[...slug].png.ts`
+(`export const prerender = true`), or pass an image URL. Without the integration, pass `og={og}`
+to `<OgMeta>`.
 
 ## Templates
 
@@ -75,8 +78,6 @@ export const og = defineOg({
   logo: { src: 'docs/logo.svg', width: 56 },
   theme: { accent: '#c6c6bd', background: '#122023', foreground: '#f4f3ec', muted: '#c6c6bd' },
 })
-
-og.route([{ image: 'src/assets/photo.jpg', pathname: '/', title: 'Hello, world' }])
 ```
 
 ### backdrop

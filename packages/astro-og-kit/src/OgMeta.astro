@@ -2,7 +2,7 @@
 import type { OgMetaProps } from 'astro-og-kit'
 import { build, trailingSlash } from 'astro:config/client'
 
-import { encodeRecord, isImageUrlOverride, pagePath, warnOnDemand } from './page-path.ts'
+import { encodeRecord, isImageUrlOverride, metaTags, pagePath, warnOnDemand } from './page-path.ts'
 
 type Props = OgMetaProps
 
@@ -10,14 +10,18 @@ const { background, data, footer, image, logo, og, template, theme, url, ...inpu
 const pageUrl = new URL(url ?? Astro.url, Astro.site)
 const path = pagePath(pageUrl.pathname, { buildFormat: build.format, trailingSlash })
 const override = isImageUrlOverride(image)
-const tags = og.meta({
+const kit = import.meta.env.ASTRO_OG_KIT
+if (!og && !kit) {
+  throw new Error('[astro-og-kit] <OgMeta> needs ogkit(og) in astro.config or an og={og} prop.')
+}
+const meta = {
   ...input,
   deployBase: import.meta.env.BASE_URL,
   image: override ? image : undefined,
   site: Astro.site,
   url: new URL(path, Astro.site ?? pageUrl),
-})
-const kit = import.meta.env.ASTRO_OG_KIT
+}
+const tags = og ? og.meta(meta) : metaTags(meta, kit)
 const carry = kit && Astro.isPrerendered && !override
 if (kit && import.meta.env.DEV && !Astro.isPrerendered && !override) {
   warnOnDemand(path)

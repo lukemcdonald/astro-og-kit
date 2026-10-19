@@ -1,4 +1,4 @@
-import type { OgImageSource, OgPage } from './types.ts'
+import type { OgImageSource, OgMetaInput, OgMetaTag, OgPage } from './types.ts'
 
 type BuildFormat = 'directory' | 'file' | 'preserve'
 type TrailingSlash = 'always' | 'ignore' | 'never'
@@ -52,6 +52,106 @@ export function pagePath(pathname: string, options: PagePathOptions = {}): strin
   }
 
   return path
+}
+
+/** `/docs/` → `/docs`, `/` stays `/`. */
+function normalizeBase(base: string): string {
+  const trimmed = base.replace(/^\/+|\/+$/g, '')
+  if (trimmed === '') {
+    return '/'
+  }
+
+  return `/${trimmed}`
+}
+
+function joinUrl(...segments: string[]): string {
+  const parts: string[] = []
+  for (const segment of segments) {
+    const trimmed = segment.replace(/^\/+|\/+$/g, '')
+    if (trimmed !== '') {
+      parts.push(trimmed)
+    }
+  }
+
+  return `/${parts.join('/')}`
+}
+
+/** Drop Astro's deploy base from a page pathname so the slug does not include it. */
+export function stripDeployBase(pathname: string, deployBase: string): string {
+  const base = normalizeBase(deployBase)
+  const path = pathname.startsWith('/') ? pathname : `/${pathname}`
+  if (base === '/') {
+    return path
+  }
+  if (path === base || path === `${base}/`) {
+    return '/'
+  }
+  if (path.startsWith(`${base}/`)) {
+    return path.slice(base.length) || '/'
+  }
+
+  return path
+}
+
+export function slugFor(pathname: string): string {
+  const trimmed = pathname.replace(/\.html$/, '').replace(/^\/+|\/+$/g, '')
+  if (trimmed === '') {
+    return 'index'
+  }
+
+  return trimmed
+}
+
+/**
+ * Image URL path. `pathname` is the page path; `prefix` is the image route
+ * (`/og`); `deployBase` is Astro's `base`. The deploy base is stripped from
+ * the slug and prefixed on the result.
+ */
+export function imagePath(pathname: string, prefix = '/og', deployBase = '/'): string {
+  const deploy = normalizeBase(deployBase)
+  const slug = slugFor(stripDeployBase(pagePath(pathname), deploy))
+
+  return joinUrl(deploy, prefix, `${slug}.png`)
+}
+
+export function createMeta(path: (pathname: string, deployBase?: string) => string) {
+  return (input: OgMetaInput): OgMetaTag[] => {
+    const { deployBase, description, image, imageAlt, site, siteName, title, type = 'website', url } = input
+    const pageUrl = new URL(url, site)
+    const route = pagePath(pageUrl.pathname)
+    const ogUrl = site ? new URL(route, site).toString() : undefined
+    const imageUrl = new URL(image ?? path(route, deployBase), site ?? pageUrl).toString()
+    const tags: [string, string | undefined, 'name' | 'property'][] = [
+      ['og:title', title, 'property'],
+      ['og:description', description, 'property'],
+      ['og:type', type, 'property'],
+      ['og:url', ogUrl, 'property'],
+      ['og:site_name', siteName, 'property'],
+      ['og:image', imageUrl, 'property'],
+      ['og:image:width', image ? undefined : '1200', 'property'],
+      ['og:image:height', image ? undefined : '630', 'property'],
+      ['og:image:alt', imageAlt, 'property'],
+      ['twitter:card', 'summary_large_image', 'name'],
+      ['twitter:title', title, 'name'],
+      ['twitter:description', description, 'name'],
+      ['twitter:image', imageUrl, 'name'],
+    ]
+
+    return tags.flatMap(([key, content, attr]): OgMetaTag[] => {
+      if (!content) {
+        return []
+      }
+      if (attr === 'name') {
+        return [{ content, name: key }]
+      }
+
+      return [{ content, property: key }]
+    })
+  }
+}
+
+export function metaTags(input: OgMetaInput, prefix = '/og'): OgMetaTag[] {
+  return createMeta((pathname, deployBase) => imagePath(pathname, prefix, deployBase))(input)
 }
 
 export function isImageUrlOverride(image: unknown): image is string {
