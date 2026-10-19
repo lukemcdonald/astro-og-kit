@@ -1,7 +1,8 @@
 # astro-og-kit
 
 > [!WARNING]
-> **Experimental.** 0.x, published under `next`. The API may change until 1.0. Pin an exact version.
+> **Experimental.** 0.x releases, published under the `next` tag. The API may change in any release
+> until 1.0. Pin an exact version.
 
 Build-time Open Graph images for Astro. SVG templates, rendered to PNG with
 [resvg](https://github.com/yisibl/resvg-js).
@@ -134,6 +135,8 @@ Per page: `title`, `pathname`, `image`, `background`, `mark`, `template`, `theme
 
 [editorial](examples/editorial), [backdrop](examples/backdrop), and [custom](examples/custom)
 examples. `npm test`, `npm run examples`, and `npm run docs:images`.
+
+0.x `next` releases: see [RELEASING.md](RELEASING.md).
 
 ## License
 
