@@ -6,8 +6,7 @@ import { encodeRecord, metaTags, pagePath, warnOnDemand } from './page-path.ts'
 
 type Props = OgMetaProps
 
-const { background, data, footer, heading, image, logo, og, photo, template, theme, url, ...input } =
-  Astro.props
+const { colors, data, footer, heading, image, logo, og, photo, template, url, ...input } = Astro.props
 const pageUrl = new URL(url ?? Astro.url, Astro.site)
 const path = pagePath(pageUrl.pathname, { buildFormat: build.format, trailingSlash })
 const kit = import.meta.env.ASTRO_OG_KIT
@@ -34,7 +33,7 @@ if (kit && import.meta.env.DEV && !Astro.isPrerendered && !image) {
     <meta
       name="astro-og-kit"
       content={encodeRecord({
-        background,
+        colors,
         data,
         footer,
         heading,
@@ -42,7 +41,6 @@ if (kit && import.meta.env.DEV && !Astro.isPrerendered && !image) {
         pathname: path,
         photo,
         template,
-        theme,
         title: input.title,
       })}
     />

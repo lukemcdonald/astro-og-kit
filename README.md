@@ -15,7 +15,7 @@ npm i astro-og-kit
 
 ## Quick start
 
-**1.** `src/og.ts`:
+**1.** `src/og.ts` — `font` is the only required key:
 
 ```ts
 import { defineOg } from 'astro-og-kit'
@@ -42,64 +42,80 @@ export default defineConfig({
 
 ```astro
 ---
-import photo from '../assets/photo.jpg'
 import OgMeta from 'astro-og-kit/OgMeta.astro'
 ---
 
-<OgMeta description={description} photo={photo} title={title} />
+<OgMeta title={title} />
 ```
 
-Every prerendered page that renders `<OgMeta>` gets a PNG at its `og:image` URL. No page list, no
-route file. `photo` is the card photo. `heading` is the text drawn on the image and defaults to
-`title`. `image` overrides `og:image` (an absolute URL, or a path resolved against `Astro.site`)
-and skips generation. `template` on `<OgMeta>` is `'editorial'` or `'backdrop'` only.
+Every prerendered page that renders `<OgMeta>` gets a PNG at its `og:image` URL.
+Set `site` in `astro.config` so image URLs are absolute. `heading` is the text
+drawn on the image (defaults to `title`). `photo` is the card photo (pass the
+imported image, not `.src`). `image` overrides `og:image` and skips generation.
 
-Set `site` in `astro.config` so image URLs are absolute. Pass the imported image object into
-`photo`, not `.src`. Optional `url` (string or URL) is the page URL for `og:url` and `og:image`;
-relative values use `Astro.site`. Defaults to `Astro.url`.
+On-demand pages get no build-time PNG. Use `og.route()` in
+`src/pages/og/[...slug].png.ts` (`export const prerender = true`), or pass
+`image`. Without the integration, pass `og={og}` to `<OgMeta>`.
 
-### Advanced: explicit routes / on-demand pages
-
-On-demand pages get no build-time PNG. Use `og.route()` in `src/pages/og/[...slug].png.ts`
-(`export const prerender = true`), or pass `image`. Without the integration, pass `og={og}`
-to `<OgMeta>`.
-
-## Templates
-
-### editorial
-
-<img src="docs/editorial.png" alt="editorial template" width="600" />
+## Brand
 
 ```ts
-import { defineOg } from 'astro-og-kit'
+const colors = {
+  accent: '#c6c6bd',
+  background: '#122023',
+  foreground: '#f4f3ec',
+  muted: '#c6c6bd',
+}
 
 export const og = defineOg({
-  font: { family: 'Inter', files: ['src/assets/Inter.ttf'] },
+  font: { family: 'Inter', files: ['src/assets/Inter.ttf'], weight: 600 },
+  colors,
+  logo: { src: 'src/assets/logo.svg', width: 72 },
   footer: 'example.com',
-  logo: { src: 'docs/logo.svg', width: 56 },
-  theme: { accent: '#c6c6bd', background: '#122023', foreground: '#f4f3ec', muted: '#c6c6bd' },
+  photo: 'src/assets/hero.jpg',
 })
 ```
 
-### backdrop
+`colors` keys are optional. `overlay` (tint over a full-bleed photo) defaults to
+`background`. `colors.logo` defaults to `foreground` and recolors the SVG;
+`false` keeps the file's own colors. `photo` is a path, an import, or
+`{ src, position }` (`left` / `center` / `right` / `top` / `bottom`).
 
-<img src="docs/backdrop.png" alt="backdrop template" width="600" />
+## Layout
+
+### split (default)
+
+<img src="docs/split.png" alt="split template" width="600" />
+
+Title on the left, photo (if any) in a panel on the right.
 
 ```ts
-import { defineOg } from 'astro-og-kit'
+import { defineOg, split } from 'astro-og-kit'
 
 export const og = defineOg({
-  background: { src: 'src/assets/photo.jpg' },
   font: { family: 'Inter', files: ['src/assets/Inter.ttf'] },
-  footer: 'example.com',
-  logo: { src: 'docs/logo.svg', width: 56 },
-  template: 'backdrop',
-  theme: { accent: '#c6c6bd', background: '#122023', foreground: '#f4f3ec', muted: '#c6c6bd' },
+  template: split({ lineHeight: 1.16 }),
 })
 ```
 
-Tweak a built-in without writing a template: `template: editorial({ titleSize: 64, accentBar: false })`
-(`titleLineHeight`, `titleMaxLines`, `titleMaxWidth`).
+### cover
+
+<img src="docs/cover.png" alt="cover template" width="600" />
+
+Full-bleed photo behind the title, with a tinted overlay.
+
+```ts
+import { cover, defineOg } from 'astro-og-kit'
+
+export const og = defineOg({
+  font: { family: 'Inter', files: ['src/assets/Inter.ttf'] },
+  photo: 'src/assets/hero.jpg',
+  template: cover({ opacity: 0.72, maxWidth: 640 }),
+})
+```
+
+Options: `size`, `lineHeight`, `maxWidth`, `maxLines`, `accentBar`, and
+`opacity` (`cover` only). Each has a default; pass only what you change.
 
 ## Custom template
 
@@ -110,19 +126,19 @@ Tweak a built-in without writing a template: `template: editorial({ titleSize: 6
 ```ts
 import { defineOg, svg, type OgTemplate } from 'astro-og-kit'
 
-const card: OgTemplate = ({ font, height, logo, page, theme, width }) => svg`
+const card: OgTemplate = ({ colors, font, height, logo, page, width }) => svg`
   <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-    <rect width="100%" height="100%" fill="${theme.background}" />
+    <rect width="100%" height="100%" fill="${colors.background}" />
     ${logo?.at(96, 80)}
     <text x="96" y="360" font-family="${font.family}" font-size="80"
-      fill="${theme.foreground}">${page.title}</text>
+      fill="${colors.foreground}">${page.title}</text>
   </svg>`
 
 export const og = defineOg({
   font: { family: 'Inter', files: ['src/assets/Inter.ttf'] },
+  colors: { background: '#122023', foreground: '#f4f3ec' },
   logo: { src: 'docs/logo.svg', width: 56 },
   template: card,
-  theme: { background: '#122023', foreground: '#f4f3ec' },
 })
 ```
 
@@ -133,29 +149,56 @@ export const og = defineOg({
 </tr>
 </table>
 
-## Options
+## Page
 
-| Option       | What it does                                                |
-| ------------ | ----------------------------------------------------------- |
-| `font`       | `{ family, files, weight? }`. TTF or OTF, not WOFF2.        |
-| `template`   | `'editorial'` (default), `'backdrop'`, or a function.       |
-| `theme`      | `{ background, foreground, muted, accent }`.                |
-| `logo`       | `{ src, width? }`.                                          |
-| `background` | `{ src, overlay?, opacity? }`.                              |
-| `footer`     | Small line under the title.                                 |
-| `prefix`     | Image route. Default `/og`. Not Astro's `base`.             |
-| `compress`   | Shrink PNGs with sharp when installed. Default `true`.      |
-| `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns it off. |
+On `<OgMeta>` or `og.route()`: `title`, `heading`, `description`, `photo`,
+`image` (OgMeta only; skips the PNG), `colors`, `logo` (`false` hides it),
+`footer` (`false` hides it), `template` (`'split'` or `'cover'` on OgMeta),
+`data`, `pathname` (route records). `WIDTH` and `HEIGHT` (`1200`, `630`) are
+exported for custom templates.
 
-Per page (on `<OgMeta>` or `og.route()`): `title`, `heading`, `pathname`, `photo`, `background`,
-`footer`, `logo`, `template`, `theme`, `data`. `heading` defaults to `title`. `image` on `<OgMeta>`
-overrides `og:image`. `logo: false` hides the site logo; an object is merged over it.
-`WIDTH` and `HEIGHT` (`1200`, `630`) are exported for custom templates. A logo file's inner
-`<style>` is stripped; color comes from `logo.color` / `currentColor`.
+## Build
+
+```ts
+export const og = defineOg({
+  font: { family: 'Inter', files: ['src/assets/Inter.ttf'] },
+  output: { path: '/og', compress: true, cache: 'node_modules/.astro-og-kit' },
+})
+```
+
+All optional. `path` is the image route (not Astro's `base`). `cache: false`
+turns the cache off.
+
+## Full config
+
+```ts
+import { defineOg, split } from 'astro-og-kit'
+
+const colors = {
+  accent: '#c6c6bd',
+  background: '#122023',
+  foreground: '#f4f3ec',
+  muted: '#c6c6bd',
+  overlay: '#122023',
+}
+
+export const og = defineOg({
+  font: { family: 'Inter', files: ['src/assets/fonts/Inter-SemiBold.ttf'], weight: 600 },
+  colors,
+  logo: { src: 'src/assets/logo.svg', width: 72 },
+  footer: 'example.com',
+  photo: 'src/assets/hero.jpg',
+  template: split({ lineHeight: 1.16 }),
+  output: { path: '/og', compress: true, cache: 'node_modules/.astro-og-kit' },
+})
+```
+
+`cover({ opacity: 0.72, maxWidth: 640 })` instead of `split` for a full-bleed
+photo. `colors.logo: false` keeps the SVG's own fills.
 
 ## More
 
-[editorial](examples/editorial), [backdrop](examples/backdrop), and [custom](examples/custom)
+[split](examples/split), [cover](examples/cover), and [custom](examples/custom)
 examples. `npm test`, `npm run examples`, and `npm run docs:images`.
 
 0.x releases: see [RELEASING.md](RELEASING.md).

@@ -15,7 +15,7 @@ import { extractRecords, pageUrl, pngSlug, stripDeployBase, type PagePathOptions
  * `import ogKit from 'astro-og-kit/integration'` then `integrations: [ogKit(og)]`.
  */
 export default function ogKit(og: Og): AstroIntegration {
-  const prefix = og.config.prefix ?? '/og'
+  const prefix = og.config.output?.path ?? '/og'
   let base = '/'
   let pathOptions: PagePathOptions = {}
 

@@ -10,9 +10,7 @@ function tag(tags: ReturnType<ReturnType<typeof createMeta>>, key: string) {
   return tags.find((t) => ('property' in t && t.property === key) || ('name' in t && t.name === key))?.content
 }
 
-const font = fileURLToPath(
-  new URL('../../../examples/editorial/src/assets/Inter-SemiBold.ttf', import.meta.url),
-)
+const font = fileURLToPath(new URL('../../../examples/split/src/assets/Inter-SemiBold.ttf', import.meta.url))
 
 /** Astro's detector in packages/astro/src/core/routing/prerender.ts */
 const ASTRO_PRERENDER = /^\s*export\s+const\s+prerender\s*=\s*(true|false);?/m
@@ -71,15 +69,22 @@ test('prefix / does not produce a protocol-relative URL', () => {
   assert.equal(imagePath('/', '/', '/'), '/index.png')
   assert.equal(imagePath('/about/', '/', '/'), '/about.png')
   assert.equal(imagePath('/about/', '/', '/docs'), '/docs/about.png')
-  const og = defineOg({ font: { family: 'Inter', files: [font] }, prefix: '/' })
+  const og = defineOg({ font: { family: 'Inter', files: [font] }, output: { path: '/' } })
   assert.equal(og.path('/'), '/index.png')
   assert.equal(new URL(og.path('/'), 'https://origin').toString(), 'https://origin/index.png')
 })
 
+test('output.path prefixes image URLs', () => {
+  const og = defineOg({ font: { family: 'Inter', files: [font] }, output: { path: '/cards' } })
+  assert.equal(og.path('/about/'), '/cards/about.png')
+  const tags = og.meta({ site: 'https://example.com', title: 'About', url: '/about/' })
+  assert.equal(tag(tags, 'og:image'), 'https://example.com/cards/about.png')
+})
+
 test('example route files match Astro prerender regex', () => {
   const files = [
-    '../../../examples/backdrop/src/pages/og/[...slug].png.ts',
-    '../../../examples/editorial/src/pages/og/[...slug].png.ts',
+    '../../../examples/cover/src/pages/og/[...slug].png.ts',
+    '../../../examples/split/src/pages/og/[...slug].png.ts',
     '../../../examples/custom/src/pages/og/[...slug].png.ts',
   ]
   for (const file of files) {
@@ -197,7 +202,7 @@ test('meta honors base paths and url override', () => {
 })
 
 test('route() lists paths and rejects GET without title', async () => {
-  const og = defineOg({ cacheDir: false, font: { family: 'Inter', files: [font] } })
+  const og = defineOg({ font: { family: 'Inter', files: [font] }, output: { cache: false } })
   const endpoint = og.route([{ pathname: '/about', title: 'About' }])
   assert.equal('prerender' in endpoint, false)
 

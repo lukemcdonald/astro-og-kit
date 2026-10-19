@@ -7,7 +7,7 @@
   "commit": false,
   "fixed": [],
   "format": "auto",
-  "ignore": ["example-backdrop", "example-custom", "example-editorial"],
+  "ignore": ["example-cover", "example-custom", "example-split"],
   "linked": [],
   "updateInternalDependencies": "patch"
 }

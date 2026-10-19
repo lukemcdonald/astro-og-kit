@@ -1,4 +1,4 @@
-import type { OgImageSource, OgMetaInput, OgMetaTag, OgPage } from './types.ts'
+import type { OgImageSource, OgMetaInput, OgMetaTag, OgPage, OgPhoto, OgPhotoInput } from './types.ts'
 
 type BuildFormat = 'directory' | 'file' | 'preserve'
 type TrailingSlash = 'always' | 'ignore' | 'never'
@@ -214,20 +214,44 @@ function withSrc<T extends { src?: OgImageSource }>(value: T | false | undefined
   return { ...value, src: value.src === undefined ? undefined : filePath(value.src) }
 }
 
+function isPhoto(value: OgPhotoInput): value is OgPhoto {
+  return (
+    typeof value === 'object' &&
+    !(value instanceof URL) &&
+    'src' in value &&
+    ('position' in value || typeof value.src !== 'string')
+  )
+}
+
+function encodePhoto(photo: OgPage['photo']): OgPhotoInput | false | undefined {
+  if (photo === undefined || photo === false) {
+    return photo
+  }
+  if (isPhoto(photo)) {
+    const src = filePath(photo.src)
+    if (!photo.position || photo.position === 'center') {
+      return src
+    }
+
+    return { position: photo.position, src }
+  }
+
+  return filePath(photo)
+}
+
 export function encodeRecord(page: OgPage): string {
   const template = page.template
 
   return encodeURIComponent(
     JSON.stringify({
-      background: withSrc(page.background),
+      colors: page.colors,
       data: page.data,
       footer: page.footer,
       heading: page.heading,
       logo: withSrc(page.logo),
       pathname: page.pathname ?? '/',
-      photo: page.photo === undefined ? undefined : filePath(page.photo),
-      template: template === 'backdrop' || template === 'editorial' ? template : undefined,
-      theme: page.theme,
+      photo: encodePhoto(page.photo),
+      template: template === 'cover' || template === 'split' ? template : undefined,
       title: page.title,
     }),
   )

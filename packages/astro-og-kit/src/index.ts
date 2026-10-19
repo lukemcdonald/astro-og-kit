@@ -6,7 +6,7 @@ import { createRoute } from './route.ts'
 
 export type * from './types.ts'
 export { HEIGHT, WIDTH } from './render.ts'
-export { backdrop, editorial, type FrameOptions } from './templates/index.ts'
+export { cover, split, type FrameOptions } from './templates/index.ts'
 export { escapeXml, raw, svg, type Markup } from './svg.ts'
 export { fontMetrics, type FontMetrics } from './font.ts'
 export { wrapText, type WrapOptions } from './wrap.ts'
@@ -17,13 +17,18 @@ export { wrapText, type WrapOptions } from './wrap.ts'
  * `font` is required (`family` plus TTF/OTF `files`). Returns
  * `{ meta, path, render, route, svg }`.
  *
- * `prefix` is the image route (default `/og`), not Astro's deploy `base`.
+ * One flat object, documented in three groups:
+ * Brand (`font`, `colors`, `logo`, `footer`, `photo`),
+ * Layout (`template`: `split` or `cover`),
+ * Build (`output`: `path`, `compress`, `cache`).
+ *
+ * `output.path` is the image route (default `/og`), not Astro's deploy `base`.
  * Page paths passed to `path()` / `route()` omit the deploy base.
  * Pass `import.meta.env.BASE_URL` as `path()`'s second argument (and as
  * `meta({ deployBase })`); `<OgMeta>` does that for you.
  */
 export function defineOg(config: OgConfig): Og {
-  const prefix = config.prefix ?? '/og'
+  const prefix = config.output?.path ?? '/og'
   const path = (pathname: string, deployBase = '/') => imagePath(pathname, prefix, deployBase)
 
   return {
