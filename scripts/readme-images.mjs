@@ -10,6 +10,7 @@ import { defineOg, svg } from '../packages/astro-og-kit/dist/index.js'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const docs = join(root, 'docs')
 const font = join(root, 'examples/editorial/src/assets/Inter-SemiBold.ttf')
+const logo = { src: join(docs, 'logo.svg'), width: 56 }
 
 const fontConfig = { family: 'Inter', files: [font], weight: 600 }
 const theme = {
@@ -20,9 +21,10 @@ const theme = {
 }
 
 /** Same function as the README custom snippet. */
-const card = ({ font, height, page, theme, width }) => svg`
+const card = ({ font, height, logo, page, theme, width }) => svg`
   <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
     <rect width="100%" height="100%" fill="${theme.background}" />
+    ${logo?.at(96, 80)}
     <text x="96" y="360" font-family="${font.family}" font-size="80"
       fill="${theme.foreground}">${page.title}</text>
   </svg>`
@@ -67,7 +69,8 @@ await write(
   'editorial.png',
   {
     font: fontConfig,
-    mark: 'example.com',
+    footer: 'example.com',
+    logo,
     theme,
   },
   { image: photo, title: 'Hello, world' },
@@ -77,7 +80,8 @@ await write(
   {
     background: { src: photo },
     font: fontConfig,
-    mark: 'example.com',
+    footer: 'example.com',
+    logo,
     template: 'backdrop',
     theme,
   },
@@ -87,6 +91,7 @@ await write(
   'custom.png',
   {
     font: fontConfig,
+    logo,
     template: card,
     theme,
   },

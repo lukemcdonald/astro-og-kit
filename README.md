@@ -59,7 +59,8 @@ import { defineOg } from 'astro-og-kit'
 
 export const og = defineOg({
   font: { family: 'Inter', files: ['src/assets/Inter.ttf'] },
-  mark: 'example.com',
+  footer: 'example.com',
+  logo: { src: 'docs/logo.svg', width: 56 },
   theme: { accent: '#c6c6bd', background: '#122023', foreground: '#f4f3ec', muted: '#c6c6bd' },
 })
 
@@ -76,7 +77,8 @@ import { defineOg } from 'astro-og-kit'
 export const og = defineOg({
   background: { src: 'src/assets/photo.jpg' },
   font: { family: 'Inter', files: ['src/assets/Inter.ttf'] },
-  mark: 'example.com',
+  footer: 'example.com',
+  logo: { src: 'docs/logo.svg', width: 56 },
   template: 'backdrop',
   theme: { accent: '#c6c6bd', background: '#122023', foreground: '#f4f3ec', muted: '#c6c6bd' },
 })
@@ -94,15 +96,17 @@ Tweak a built-in without writing a template: `template: editorial({ titleSize: 6
 ```ts
 import { defineOg, svg, type OgTemplate } from 'astro-og-kit'
 
-const card: OgTemplate = ({ font, height, page, theme, width }) => svg`
+const card: OgTemplate = ({ font, height, logo, page, theme, width }) => svg`
   <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
     <rect width="100%" height="100%" fill="${theme.background}" />
+    ${logo?.at(96, 80)}
     <text x="96" y="360" font-family="${font.family}" font-size="80"
       fill="${theme.foreground}">${page.title}</text>
   </svg>`
 
 export const og = defineOg({
   font: { family: 'Inter', files: ['src/assets/Inter.ttf'] },
+  logo: { src: 'docs/logo.svg', width: 56 },
   template: card,
   theme: { background: '#122023', foreground: '#f4f3ec' },
 })
@@ -124,12 +128,12 @@ export const og = defineOg({
 | `theme`      | `{ background, foreground, muted, accent }`.                |
 | `logo`       | `{ src, width? }`.                                          |
 | `background` | `{ src, overlay?, opacity? }`.                              |
-| `mark`       | Small line under the title.                                 |
+| `footer`     | Small line under the title.                                 |
 | `prefix`     | Image route. Default `/og`. Not Astro's `base`.             |
 | `compress`   | Shrink PNGs with sharp when installed. Default `true`.      |
 | `cacheDir`   | Default `node_modules/.astro-og-kit`. `false` turns it off. |
 
-Per page: `title`, `pathname`, `image`, `background`, `mark`, `template`, `theme`, `data`.
+Per page: `title`, `pathname`, `image`, `background`, `footer`, `template`, `theme`, `data`.
 
 ## More
 

@@ -1,5 +1,5 @@
 ---
-'astro-og-kit': patch
+'astro-og-kit': minor
 ---
 
-Simpler README with rendered template examples.
+Rename `mark` to `footer`. Simpler README with rendered examples.

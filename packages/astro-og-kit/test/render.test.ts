@@ -70,7 +70,7 @@ test('renders a 1200x630 PNG with both built-in templates', async () => {
     })
     const png = Buffer.from(
       await og.render({
-        mark: 'example.com',
+        footer: 'example.com',
         title: 'Hello <world> & friends',
       }),
     )
@@ -137,7 +137,7 @@ test('editorial and backdrop svg keep logo, accent bar, and title tspans', async
     logo: { src: logo },
     template: 'editorial',
   })
-  const editorialSvg = await editorial.svg({ mark: 'example.com', title: 'Hello' })
+  const editorialSvg = await editorial.svg({ footer: 'example.com', title: 'Hello' })
   assert.match(editorialSvg, /x="96" y="80"/)
   assert.match(editorialSvg, /<rect width="12" height="630"/)
   assert.match(editorialSvg, /<tspan x="96"/)
@@ -152,6 +152,18 @@ test('editorial and backdrop svg keep logo, accent bar, and title tspans', async
   assert.match(backdropSvg, /x="96" y="48"/)
   assert.match(backdropSvg, /<rect width="12" height="630"/)
   assert.match(backdropSvg, /<tspan x="96"/)
+})
+
+test('page footer: false hides the site footer', async () => {
+  const og = defineOg({
+    cacheDir: false,
+    font: { family: 'Inter', files: [font] },
+    footer: 'example.com',
+  })
+  const shown = await og.svg({ title: 'Hello' })
+  assert.match(shown, />example.com</)
+  const hidden = await og.svg({ footer: false, title: 'Hello' })
+  assert.doesNotMatch(hidden, /example.com/)
 })
 
 test('tells you to pass the imported image object, not .src', async () => {

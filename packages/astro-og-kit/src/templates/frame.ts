@@ -42,10 +42,10 @@ function accentWidth(accentBar: boolean | number) {
 
 /**
  * The shared layout behind both built-in templates: canvas, optional photo,
- * accent bar, logo top-left, title centered vertically, mark near the bottom.
+ * accent bar, logo top-left, title centered vertically, footer near the bottom.
  */
 export function frame(options: Required<FrameOptions>): OgTemplate {
-  return ({ width, height, theme, font, page, mark, logo, background, image }: OgTemplateContext) => {
+  return ({ background, font, footer, height, image, logo, page, theme, width }: OgTemplateContext) => {
     const photoWidth = image ? options.photoWidth : 0
     const textWidth = width - PAD * 2 - photoWidth
     const maxWidth = Math.min(textWidth, options.titleMaxWidth || textWidth)
@@ -78,7 +78,7 @@ export function frame(options: Required<FrameOptions>): OgTemplate {
   <text font-family="${font.family}" font-size="${options.titleSize}" font-weight="${font.weight}" fill="${theme.foreground}">${lines.map(
     (line, i) => svg`<tspan x="${PAD}" y="${firstY + i * lineHeight}">${line}</tspan>`,
   )}</text>
-  ${mark && svg`<text x="${PAD}" y="${height - PAD}" font-family="${font.family}" font-size="28" font-weight="${font.weight}" fill="${theme.muted}">${mark}</text>`}
+  ${footer && svg`<text x="${PAD}" y="${height - PAD}" font-family="${font.family}" font-size="28" font-weight="${font.weight}" fill="${theme.muted}">${footer}</text>`}
 </svg>`
   }
 }
