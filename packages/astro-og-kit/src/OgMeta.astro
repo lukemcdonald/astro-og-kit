@@ -18,7 +18,7 @@ const tags = og.meta({
   url: new URL(path, Astro.site ?? pageUrl),
 })
 const kit = import.meta.env.ASTRO_OG_KIT
-const carry = kit && (Astro.isPrerendered || import.meta.env.DEV) && !override
+const carry = kit && Astro.isPrerendered && !override
 if (kit && import.meta.env.DEV && !Astro.isPrerendered && !override) {
   warnOnDemand(path)
 }

@@ -82,18 +82,12 @@ function withSrc<T extends { src?: OgImageSource }>(value: T | false | undefined
 }
 
 export function encodeRecord(page: OgPage): string {
-  let data: Record<string, unknown> | undefined
-  try {
-    data = page.data && (JSON.parse(JSON.stringify(page.data)) as Record<string, unknown>)
-  } catch {
-    data = undefined
-  }
   const template = page.template
 
   return encodeURIComponent(
     JSON.stringify({
       background: withSrc(page.background),
-      data,
+      data: page.data,
       footer: page.footer,
       image: page.image === undefined ? undefined : filePath(page.image),
       logo: withSrc(page.logo),
@@ -118,30 +112,6 @@ export function extractRecords(html: string): { html: string; records: OgPage[] 
   })
 
   return { html: next, records }
-}
-
-export function pngSlug(pathname: string, prefix = '/og', base = '/'): string | undefined {
-  const path = pathname.split('?')[0] ?? ''
-  const root = `/${base.replace(/^\/+|\/+$/g, '')}`.replace(/^\/$/, '')
-  const stripped =
-    root && (path === root || path.startsWith(`${root}/`)) ? path.slice(root.length) || '/' : path
-  const pre = prefix === '/' ? '' : `/${prefix.replace(/^\/+|\/+$/g, '')}`
-  for (const candidate of stripped === path ? [path] : [stripped, path]) {
-    if (
-      !candidate.endsWith('.png') ||
-      (pre && candidate !== `${pre}.png` && !candidate.startsWith(`${pre}/`))
-    ) {
-      continue
-    }
-    const slug = candidate.slice(pre.length).replace(/^\//, '').slice(0, -4)
-    if (slug) {
-      return slug
-    }
-  }
-}
-
-export function pageFromSlug(slug: string, options?: PagePathOptions): string {
-  return pagePath(slug === 'index' ? '/' : `/${slug}`, options)
 }
 
 export function warnOnDemand(pathname: string): void {

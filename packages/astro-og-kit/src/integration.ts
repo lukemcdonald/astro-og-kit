@@ -6,8 +6,41 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { extractRecords, pageFromSlug, pngSlug, type PagePathOptions } from './page-path.ts'
+import { extractRecords, pagePath, type PagePathOptions } from './page-path.ts'
 import { stripDeployBase } from './route.ts'
+
+export function pngSlug(pathname: string, prefix = '/og', base = '/'): string | undefined {
+  const path = stripDeployBase(pathname.split('?')[0] ?? '', base)
+  const pre = prefix === '/' ? '' : `/${prefix.replace(/^\/+|\/+$/g, '')}`
+  if (!path.endsWith('.png') || (pre && path !== `${pre}.png` && !path.startsWith(`${pre}/`))) {
+    return
+  }
+  const slug = path.slice(pre.length).replace(/^\//, '').slice(0, -4)
+  if (slug) {
+    return slug
+  }
+}
+
+function pageFromSlug(slug: string, options?: PagePathOptions): string {
+  return pagePath(slug === 'index' ? '/' : `/${slug}`, options)
+}
+
+export function pageUrl(
+  host: string,
+  base: string,
+  slug: string,
+  options: PagePathOptions = {},
+  tls = false,
+): string {
+  const protocol = tls ? 'https' : 'http'
+  const root = base.replace(/\/+$/, '')
+  const path = pageFromSlug(slug, options)
+  if (path === '/') {
+    return `${protocol}://${host}${root && options.trailingSlash === 'never' ? root : `${root}/`}`
+  }
+
+  return `${protocol}://${host}${root}${path}`
+}
 
 /**
  * Write PNGs for every prerendered page that rendered `<OgMeta>`.
@@ -104,9 +137,9 @@ async function serveDev(
   }
 
   try {
-    const root = base.replace(/\/+$/, '')
-    const path = pageFromSlug(slug, pathOptions)
-    const page = await fetch(`http://${req.headers.host}${root}${path === '/' ? '/' : path}`)
+    const page = await fetch(
+      pageUrl(String(req.headers.host ?? ''), base, slug, pathOptions, 'encrypted' in req.socket),
+    )
     if (!page.ok) {
       next()
       return

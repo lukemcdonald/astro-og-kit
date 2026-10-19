@@ -7,8 +7,9 @@ import { fileURLToPath } from 'node:url'
 
 import { build, dev } from 'astro'
 
+import { pageUrl, pngSlug } from '../src/integration.ts'
 import { defineOg } from '../src/index.ts'
-import { encodeRecord, extractRecords, isImageUrlOverride, pageFromSlug, pngSlug } from '../src/page-path.ts'
+import { encodeRecord, extractRecords, isImageUrlOverride } from '../src/page-path.ts'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const fixture = join(root, 'test/fixture')
@@ -30,8 +31,34 @@ test('carrier encode/extract and slug mapping', () => {
   assert.equal(pngSlug('/og/about.png', '/og', '/docs'), 'about')
   assert.equal(pngSlug('/og/index.png', '/og', '/'), 'index')
   assert.equal(pngSlug('/og/writing/hello.png', '/og', '/'), 'writing/hello')
-  assert.equal(pageFromSlug('index'), '/')
-  assert.equal(pageFromSlug('about', { trailingSlash: 'always' }), '/about/')
+  assert.equal(
+    pageUrl('localhost:4321', '/docs', 'index', { trailingSlash: 'never' }),
+    'http://localhost:4321/docs',
+  )
+  assert.equal(
+    pageUrl('localhost:4321', '/docs', 'index', { trailingSlash: 'always' }),
+    'http://localhost:4321/docs/',
+  )
+  assert.equal(
+    pageUrl('localhost:4321', '/docs', 'index', { trailingSlash: 'ignore' }),
+    'http://localhost:4321/docs/',
+  )
+  assert.equal(
+    pageUrl('localhost:4321', '/docs', 'about', { trailingSlash: 'never' }),
+    'http://localhost:4321/docs/about',
+  )
+  assert.equal(
+    pageUrl('localhost:4321', '/docs', 'about', { trailingSlash: 'always' }),
+    'http://localhost:4321/docs/about/',
+  )
+  assert.equal(
+    pageUrl('localhost:4321', '/docs', 'about', { trailingSlash: 'ignore' }),
+    'http://localhost:4321/docs/about',
+  )
+  assert.equal(
+    pageUrl('localhost:4321', '/docs', 'index', { trailingSlash: 'never' }, true),
+    'https://localhost:4321/docs',
+  )
   const encoded = encodeRecord({ pathname: '/about/', title: 'About' })
   const { html, records } = extractRecords(`<head><meta name="astro-og-kit" content="${encoded}"></head>`)
   assert.equal(html.includes('astro-og-kit'), false)
