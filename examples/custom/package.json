@@ -7,7 +7,7 @@
     "build": "astro build"
   },
   "dependencies": {
-    "astro": "^7.4.0",
+    "astro": "^7.4.12",
     "astro-og-kit": "*"
   }
 }
